@@ -314,8 +314,9 @@ var live = (function(){
       if (url in cached) return;
 
       // see http://stackoverflow.com/questions/2723140
-      assert(/^(http|https|ftp):\/\/[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/ix.test(url),
-        'invalid url: ' + url);
+      // XXX ff does not support extended regexp: "invalid reg. exp. flag x"
+      //assert(/^(http|https|ftp):\/\/[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/ix.test(url),
+      //  'invalid url: ' + url);
 
       assert(/\.js$/.test(url), 'url extension is not .js: ' + url);
 
