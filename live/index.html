@@ -1,0 +1,831 @@
+<!doctype html>
+<!--
+  LiveCoder.net
+  http://livecoder.net
+  http://github.com/fritzo/livecoder.net
+
+  Copyright (c) 2012, Fritz Obermeyer
+  Licensed under the MIT license:
+  http://www.opensource.org/licenses/mit-license.php
+-->
+<html manifest='cache.manifest'>
+<head>
+<meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+<title>LiveCoder.net</title>
+<meta name='description' content='A simple browser environment for coding live javascript.' />
+<link rel='icon' href='favicon.ico' type='image/x-icon' />
+
+<!---------------------------------------------------------------------------->
+
+<!-- MIT,GPL2 -->
+<script src='http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js'></script>
+<script>!window.jQuery && document.write("<script src='jquery.min.js'><\/script>")</script>
+
+<!-- MIT -->
+<script type='text/javascript' src='jquery.timeago.js'></script>
+
+<!-- MIT -->
+<script src='codemirror.min.js'></script>
+<script src='cm-live.js'></script>
+
+<!-- MIT,GPL2 -->
+<script type='text/javascript' src='safety.js'></script>
+<script type='text/javascript' src='wavencoder.js'></script>
+
+<!-- MIT -->
+<script type='text/javascript' src='livecoder.js'></script>
+
+<!-- MIT -->
+<script type='text/javascript'>
+
+var ui = {};
+
+//------------------------------------------------------------------------------
+// LocalStorage Persistence
+
+// WARNING if multiple windows/tabs are open, only the latest will autosave
+ui.getAutosave = function () {
+
+  var changed = false;
+  live.oncompile(function(){ changed = true; });
+
+  var autosave = function () {
+    if (changed) {
+      changed = false;
+      localStorage.setItem('autosave.js', live.getSource());
+    }
+    setTimeout(autosave, 500);
+  };
+  autosave();
+
+  return localStorage.getItem('autosave.js');
+};
+
+ui.saveScript = function () {
+  var name = String(Date.now()) + '.js';
+  localStorage.setItem(name, live.getSource());
+  log('saved ' + name);
+  ui.buildScriptList();
+};
+
+ui.loadScript = function (name) {
+  log('loading ' + name);
+  live.setSource(localStorage.getItem(name));
+};
+
+ui.deleteScript = function (name) {
+  localStorage.removeItem(name);
+  ui.buildScriptList();
+  log('deleted ' + name);
+  $('#gallery td button').first().focus();
+};
+
+ui.listScripts = function () {
+
+  var keys = new Array(localStorage.length);
+  for (var i = 0, I = localStorage.length; i < I; ++i) {
+    keys[i] = localStorage.key(i);
+  }
+
+  keys = keys.filter(function (key) { return /^[0-9]+\.js$/.test(key); });
+  keys.sort();
+  keys.reverse();
+
+  return keys;
+};
+
+ui.buildScriptLink = function (key) {
+
+  var create = function (tag) { return $(document.createElement(tag)); };
+  
+  var tr = create('tr');
+
+  var fullSource = $.trim(localStorage.getItem(key));
+  var briefSource = fullSource.replace(/\s+/g, ' ').substr(0,60) + '...';
+
+  var collapse = function () {
+    $('.fullPreview').filter(':not(:hidden)').slideUp(150)
+      .prev().slideDown(50);
+  };
+
+  var full = create('pre')
+    .append(create('code').text(fullSource))
+    .attr('class', 'fullPreview')
+     //.attr('title', 'click to collapse')
+    .hide();
+  var brief = create('pre')
+    .append(create('code').text(briefSource))
+    .attr('class', 'briefPreview')
+    .attr('title', 'click to expand')
+    .click(function(){
+          collapse();
+          brief.hide();
+          full.slideDown(150);
+        })
+    .show();
+
+  tr.append(create('td')
+      .append(brief, full));
+      // older simpler version
+      //.click(function(){
+      //      brief.slideToggle(50);
+      //      full.slideToggle(150);
+      //    }));
+
+  var time_js = key.split('.');
+  var time = Number(time_js[0]);
+  var timeago = $.timeago(new Date(time));
+  tr.append(create('td')
+        .html(timeago)
+        .attr('class', 'timeago')
+        .attr('title', 'click to collapse')
+        .click(collapse));
+
+  tr.append(create('td')
+      .attr('title', 'click to collapse')
+      .click(collapse)
+      .append(create('button')
+          .html('load').attr('class','roundFlat')
+          .attr('title', 'load in editor')
+          .click(function(){ ui.loadScript(key); }))
+      .append(create('button')
+          .html('delete').attr('class','flatRound')
+          .attr('title', 'delete from local storage')
+          .click(function(){
+            tr.fadeOut(150, function(){ ui.deleteScript(key); });
+          })));
+
+  return tr;
+};
+
+ui.buildScriptList = function () {
+  var create = function (tag) { return $(document.createElement(tag)); };
+
+  var keys = ui.listScripts();
+
+  $('#showGallery').html('gallery (' + keys.length + ')');
+
+  var menu = $('#gallery table').empty();
+  for (var i = 0; i < keys.length; ++i) {
+    var key = keys[i];
+    menu.append(ui.buildScriptLink(key));
+  }
+  menu.append(create('tr').css('height','3ex'));
+};
+
+//------------------------------------------------------------------------------
+// Import/Export
+
+ui.exportGallery = function () {
+  var keys = ui.listScripts();
+
+  var sep = '\n\n'
+          + '//======================================'
+          + '========================================'
+          + '\n'
+          + '// ';
+  var scripts = [];
+  for (var i = 0; i < keys.length; ++i) {
+    var name = keys[i];
+    var script = localStorage.getItem(name).trim();
+    scripts[i] = sep + name + '\n\n' + script;
+  }
+
+  return scripts.join('');
+};
+
+ui.importGallery = function (concatenatedScripts) {
+  var sep = /^\/\/={40,}\n\/\/\s*(?=[0-9]+\.js$)/gm;
+  var scripts = concatenatedScripts.split(sep).slice(1);
+
+  //console.log('importing ' + scripts.length + ' files');
+  for (var i = 0; i < scripts.length; ++i) {
+    try {
+      var name_script = scripts[i];
+      var name = name_script.match(/^[0-9]+\.js\b/)[0];
+      var script = name_script.slice(name.length).trim();
+
+      //console.log(' importing ' + name);
+      localStorage.setItem(name, script);
+    } catch (err) { alert(err); }
+  }
+
+  ui.buildScriptList();
+};
+
+//------------------------------------------------------------------------------
+// Hash Persistence
+
+ui.getHash = function () {
+  var hashedSource = encodeURIComponent(live.getSource());
+  return window.location.href.split('#')[0] + '#' + hashedSource;
+};
+
+ui.popHash = function () {
+  if (window.location.hash && window.location.hash.length > 1) {
+    var source = decodeURIComponent(window.location.hash.substr(1));
+    window.location.hash = '';
+    return source;
+  } else {
+    return undefined;
+  }
+};
+
+ui.shareHash = function () {
+  var href = ui.getHash();
+  var html = "<iframe width='480' height='240' src='" + href + "'></iframe>";
+
+  $('#shareBoxCopied').hide();
+  $('#shareBox').fadeIn(100);
+  $('#shareBoxText').val(href).focus().select();
+  $('#shareBoxHtml').val(html);
+
+  if (window.clipboardData) {
+    window.clipboardData.setData(href);
+    $('#shareBoxCopied').show();
+  }
+};
+
+//------------------------------------------------------------------------------
+// Hiding
+
+// these cycle between 2 states
+
+ui.showToolbar = function (speed) {
+  if (speed == undefined) speed = 100;
+  return function (e) {
+    $('#toolbar').fadeIn(speed, function(){ $('#showToolbar').hide(); });
+    $('#hideToolbar').focus();
+    if (e) e.preventDefault();
+  };
+};
+
+ui.hideToolbar = function (speed) {
+  if (speed == undefined) speed = 100;
+  return function (e) {
+    $('#showToolbar').show();
+    $('#toolbar').fadeOut(speed);
+    $('#showToolbar button').focus();
+    if (e) e.preventDefault();
+  };
+};
+
+//------------------------------------------------------------------------------
+// Admin
+
+var su = function () {
+  // turn on the ugly stuff
+  $('#importExport, #su').show();
+  localStorage.setItem('su', Date.now());
+};
+
+var nosu = function () {
+  // turn off the ugly stuff
+  $('#importExport, #su').hide();
+  localStorage.removeItem('su');
+};
+
+//------------------------------------------------------------------------------
+// Main
+
+ui.blink = function ($button) {
+  $button.css({opacity:0}).animate({opacity:1},'fast');
+};
+
+$(window).keydown(function (event) {
+  switch (event.which) {
+
+    // ESCAPE = hold/continue compiling
+    case 27:
+      live.toggleCompiling();
+      event.preventDefault();
+      break;
+
+    // CTRL+S to save
+    case 115: // WTF?
+    case 83:
+      if (!event.ctrlKey) break;
+    case 19: // cmd+S on mac
+      ui.blink($('#save'));
+      ui.saveScript();
+      event.preventDefault();
+      break;
+
+    // CTRL+O to show gallery
+    case 79:
+      if (!event.ctrlKey) break;
+    //case ???: // cmd+O on mac
+      ui.blink($('#showGallery'));
+      $('#gallery').fadeToggle('fast');
+      ui.buildScriptList();
+      event.preventDefault();
+      break;
+
+    // F1 = show help
+    case 112:
+      ui.blink($('#showHelp'));
+      $('#help').toggle();
+      event.preventDefault();
+      break;
+  }
+});
+
+$(function() {
+
+  // build editor
+
+  var hideOverlays = function () {
+    $('#gallery,#shareBox,#help').fadeOut('fast');
+  };
+  $('#log').on('focus', hideOverlays);
+
+  // XXX HACK FIXME
+  $('#log')
+      .attr('title','resize with arrow keys')
+      .keydown(function(event){
+            var $log = $(event.target);
+            var dheight = 0;
+            switch (event.which) {
+              case 38: dheight = 20; break;
+              case 40: dheight = -20; break;
+              default: return;
+            };
+            var height = Number($log.css('height').replace('px',''));
+            var maxHeight = window.innerHeight * 2/3;
+            height = Math.max(30, Math.min(maxHeight, height + dheight));
+            $log.css('height', height + 'px');
+          });
+
+  if ('su' in localStorage) su();
+  $('#su').click(nosu).attr('title', 'leave superuser mode');
+
+  $('#showHelp').click(function(){ $('#help').fadeToggle(100); });
+  $('#help').click(function(){ $('#help').fadeToggle(100); });
+
+  $('#save').click(ui.saveScript);
+  $('#showGallery').click(function(){
+    $('#gallery').fadeToggle('fast');
+    ui.buildScriptList();
+  });
+  $('#share').click(ui.shareHash);
+
+  $('#export').click(function(){
+        $('#galleryBox').val(ui.exportGallery).focus().select();
+      });
+  $('#import').click(function(){
+        ui.importGallery($('#galleryBox').val());
+      });
+
+  $('#showToolbar').click(ui.showToolbar());
+  $('#hideToolbar').click(ui.hideToolbar());
+
+  // initialize livecoder
+
+  var initSource = (ui.popHash() || ui.getAutosave() || '').trim();
+  $.get('gallery.jscat', function(val){ ui.importGallery(val); });
+
+  // hide controls if window is an iframe
+  if (window.location != window.parent.location) {
+    ui.hideToolbar(0)();
+  } else {
+    ui.showToolbar(0)();
+  }
+
+  var canvas2d = document.getElementById('canvas2d');
+  live.init({
+        $source: $('#source'),
+        $log: $('#log'),
+        $status: $('#showToolbar button, #hideToolbar'),
+        canvas2d: canvas2d,
+        initSource: initSource,
+        onFocus: hideOverlays
+      });
+});
+
+</script>
+
+<!---------------------------------------------------------------------------->
+
+<link rel='stylesheet' href='toolbar.css' />
+<link rel='stylesheet' href='cm-live.css' />
+<link rel='stylesheet' href='codemirror.css' />
+<style>
+
+body,
+button {
+  color: white;
+  background-color: black;
+  font-size: 12pt;
+  font-family: helvetica, verdana, sans;
+}
+
+body {
+  width:  100%;
+  height: 100%;
+  margin: 0px;
+}
+
+canvas {
+  position: fixed; 
+  top: 0px;
+  left: 0px;
+}
+
+pre,
+code,
+textarea,
+.CodeMirror {
+  font-family:
+    /* serif */
+    Courier,
+    'Courier New',
+    'Lucida Console',
+    'Freemono',
+    'Monaco',
+    /* sans */
+    'DejaVu Sans Mono',
+    'Liberation Mono',
+    'Droid Sans Mono',
+    monospace;
+}
+
+.CodeMirror,
+#editor textarea {
+  position: fixed;
+  font-weight: bold;
+  font-size: small;
+  line-height: 1em;
+
+  margin: 0px;
+  padding: 0px;
+  border: 0px;
+  outline: none;
+  resize: none;
+  overflow: auto; 
+}
+#source,
+.CodeMirror {
+  /*
+  text-shadow: 1px 1px 0ex black,
+               1px -1px 0ex black,
+               -1px 1px 0ex black,
+               -1px -1px 0ex black;
+  */
+  text-shadow: +1px +2px 0ex black,
+               +1px -2px 0ex black,
+               -1px +2px 0ex black,
+               -1px -2px 0ex black,
+               +2px +1px 0ex black,
+               +2px -1px 0ex black,
+               -2px +1px 0ex black,
+               -2px -1px 0ex black;
+
+  top: 0%;
+  height: 100%;
+  /*
+  bottom: 2ex;
+  */
+  left: 1%;
+  width: 99%;
+
+  color: #ccffcc;
+  background-color: rgba(0,0,0,0);
+}
+#log {
+  height: 10ex;
+  bottom: 0ex;
+  left: 1%;
+  width: 99%;
+  resize: vertical;
+
+
+  color: #ffff00;
+  background-color: rgba(0,0,0,0.666);
+}
+
+.info {
+  position: absolute;
+  width: 80%;
+  left: 10%;
+  top: 0px;
+
+  font-size: medium;
+  text-align: center;
+
+  border: solid 12px;
+  border-radius: 18px;
+  background-color: #222222;
+  border-color: #222222;
+  opacity: 1;
+
+  display: none; /* initially */
+}
+.info p {
+  text-align: left;
+}
+.info a,
+.info a:visited {
+  color: #aaaaff; text-decoration: none;
+}
+.info h1,
+.info h2 {
+  color: #aaaaaa;
+  font-weight: bold;
+}
+
+dl {
+  text-align: left;
+}
+dt {
+  float: left;
+  clear: left;
+  padding: 0.5em;
+  text-align: right;
+  font-weight: bold;
+}
+#help pre {
+  text-align: left;
+  font-size: small;
+  color: white;
+  /*
+  background-color: black;
+  */
+}
+
+#su {
+  display: none;
+}
+
+.briefPreview {
+  font-size: small;
+  border: 0px;
+  margin: 0px;
+}
+.fullPreview {
+  font-size: small;
+  border: solid 1px gray;
+  padding:2px;
+  margin: 0px;
+  color: #ccffcc;
+}
+.timeago {
+  font-size: small;
+  text-align: right;
+}
+#gallery {
+  position: absolute;
+  bottom: 0px;
+  max-height: 50%;
+  display: none;
+}
+#gallery table {
+  background-color: black;
+}
+#gallery table tr td {
+  white-space: nowrap;
+  padding: 0px 0.25em 0px 0.25em;
+  vertical-align: top;
+}
+
+#galleryBox {
+  margin: 0px;
+  border: solid 2px black;
+  color: white;
+  background-color: #444444;
+  font-weight: bold;
+  font-size: small;
+  border-radius: 4px;
+}
+#galleryBox:hover
+{
+  background-color: #666666;
+}
+#galleryBox,
+#export,
+#import {
+  vertical-align: middle;
+}
+#importExport {
+  display: none;
+}
+
+#shareBox {
+  position: fixed;
+  top: 10%;
+  left: 10%;
+
+  font-size: x-large;
+
+  background-color: #444444;
+  border: solid 12px #444444;
+  border-radius: 18px;
+  opacity: 1;
+  display: none; /* initially */
+}
+#shareBox textarea {  
+  overflow: hidden;
+  height: 5.2ex;
+
+  font-family: helvetica, verdana, sans;
+  font-weight: bold;
+  font-size: large;
+}
+#shareBox button {
+  width: 40%;
+  font-size: x-large;
+}
+
+/* back-to-front */
+canvas { z-index: 0; }
+
+#source { z-index: 10; }
+#log { z-index: 11; } /* in front of source, but usually hidden */
+
+#gallery { z-index: 19; }
+#toolbar, #showToolbar { z-index: 20; }
+
+#shareBox { z-index: 29; }
+#help { z-index: 30; }
+
+</style>
+</head>
+<!---------------------------------------------------------------------------->
+<body>
+
+<canvas id='canvas2d'></canvas>
+
+<div id='editor'>
+  <div><textarea id='source' name='source' spellcheck='false'></textarea></div>
+  <textarea id='log' readonly spellcheck='false'></textarea>
+</div>
+
+<div class='toolbar' id='showToolbar'> <button title='show toolbar'>:)</button> </div>
+<div class='toolbar' id='toolbar'>
+  <button class='roundRound' id='su'>su</button>
+  &nbsp;
+  <button class='roundRound' id='showHelp' title='shortcut = F1'>help</button>
+  &nbsp;
+  <button class='roundFlat' id='save' title='shortcut = CTRL+S'>save</button><!--
+  --><button class='flatFlat' id='showGallery' title='shortcut = CTRL+O'>gallery</button><!--
+  --><button class='flatRound' id='share'>share</button>
+  &nbsp;
+  <button id='hideToolbar' title='hide toolbar'>:)</button>
+</div>
+
+<div class='toolbar' id='gallery'>
+  <div id='importExport' style='position:relative; text-align: right;'>
+  <button class='roundFlat' id='export'>export</button><!--
+  --><textarea id='galleryBox' rows=1 cols=7 spellcheck='false'>gallery</textarea><!--
+  --><button class='flatRound' id='import'>import</button>
+  </div>
+  <table> </table>
+</div>
+
+<div id='shareBox'>
+  Share this link:
+  <br />
+  <textarea id='shareBoxText' rows=2 cols=48 readonly spellcheck='false'
+    onclick='select()'></textarea>
+  <br />
+  Embed this HTML:
+  <br />
+  <textarea id='shareBoxHtml' rows=2 cols=48 readonly spellcheck='false'
+    onclick='select()'></textarea>
+  <br />
+  <span id='shareBoxCopied'>Copied to clipboard!</span>
+</div>
+
+<!---------------------------------------------------------------------------->
+<div class='info' id='help'>
+<pre>
+<b>LiveCoder.net</b>  =  A simple browser environment         <a href='http://github.com/fritzo/livecoder.net'>(fork me on github)</a>
+                  for coding live javascript
+
+<b>Language Extensions</b>
+
+  vars...       A place to put persistent data
+
+  always...     A place to put functions to be continuously called
+
+  once {...},   Once-wrapped code is evaluated only on the first compile.
+  nonce {...}   Thereafter, 'once' degenerates to 'nonce'.
+                Switch 'nonce' -&gt; 'once' to compile again.
+                (this feature partially replaces a REPL + history)
+
+  clear()       Clears everything: vars, always, setTimout tasks, canvas
+<!--
+  using(url)    Loads &amp; caches a remote script (useful for libraries)
+-->
+<b>Coding Tools</b>
+
+  help(-)       Looks inside any object/function (useful for hacking :)
+
+  print(-),     Prints messages to log area
+  error(-)
+
+  assert(-,-)   assert(condition, message) throws if 'condition' is false
+
+<b>Audio (using HTML5 audio elements)</b>
+
+  encodeWav(-)  Encodes an array of [-1,1]-valued samples -&gt; wav data uri
+
+  play(-)       Plays a wav data uri (eg as generated by encodeWav)
+
+  tone(-)       Generates and encodes a linearly-ramped sine wave
+                (see examples or try help(tone) for details)
+
+  noise(-)      Generates and encodes broad or narrow band noise
+                (see examples or try help(tone) for details)
+
+  sampleRate,   Constants in kHz (all time units are ms or kHz)
+  middleC
+
+<b>Graphics (using HTML5 canvas)</b>
+
+  context       A 2D canvas context
+
+  mouseX,       Current mouse coordinates in pixels
+  mouseY
+
+<b>Keyboard Shortcuts</b>
+
+  ESCAPE        pause/continue compiling code
+                (useful for atomic modifications)
+
+  CTRL+S        save code locally
+  CTRL+O        show list of local scripts
+
+  F1            show/hide help (this message)
+
+-------------------------------------------------------------------------
+
+<b>Related Projects</b>
+
+  <a href='http://www.toplap.org'>TOPLAP</a>
+    an organization dedicated to live coding of art
+
+  <a href='http://impromptu.moso.com.au'>Impromptu</a>
+    a live coding IDE for video and audio
+
+  <a href='http://www.lively-kernel.org'>Lively Kernel</a>
+    an early experiment in browser-as-platform
+
+  <a href='http://www.sexyvisuals.com/'>SexyVisuals</a>
+    a band of visual live coders
+    who converted some of their material to webgl
+
+  <a href='http://mrdoob.com/projects/voxels'>mrdoob's voxels</a>
+    a WebGL demo of MineCraft-style block building
+
+  <a href='http://coffeescript.org'>coffeescript</a>
+    a programming langauge with javascript semantics but cleaner syntax
+    (compiles to javascript in a browser)
+
+  <a href='http://creationix.com/jack/public/index.html'>Jack</a>
+    a programming language that cleans up and compiles to javascript
+
+  <a href='http://code.google.com/p/oflivecoding/'>OFLiveCoding</a>
+    a javascript live-coding framework developed with openframeworks
+
+  <a href='http://livecoder.sugyan.com'>Livecoder</a>
+    a browser-based broadcast code editor using Eclipse Orion
+    (also called livecoder)
+
+  <a href='http://paperjs.org'>paper.js</a>
+    a vector graphics library with a sexy demo
+
+  <a href='https://github.com/christopherdebeer/speak.js'>speak.js</a>
+    a voice synthesizer running in javascript (even on chrome)
+
+  <a href='http://jsbeautifier.org'>jsbeautifier.org</a>
+    a javascript style beautifier (including lexer)
+
+  <a href='http://playground.html5rocks.com'>playground.html5rocks</a>
+    a browser-based playground for learning HTML5 and javascript
+
+  <a href='http://www.htmlfivewow.com/demos/terminal/terminal.html'>html5wow terminal</a>
+    a browser-based terminal emulator
+
+  ...many others...
+</pre>
+</div>
+
+</body>
+
+<!-- Google Analytics -->
+<script type="text/javascript">
+if (location.hostname === 'livecoder.net') {
+var _gaq = [['_setAccount', 'UA-29051281-1'], ['_trackPageview']];
+(function() {
+  var ga = document.createElement('script');
+  ga.type = 'text/javascript';
+  ga.async = true;
+  ga.src = 'http://www.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0];
+  s.parentNode.insertBefore(ga, s);
+})();
+} // livecoder.net
+</script>
+
+</html>
+

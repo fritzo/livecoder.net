@@ -1,0 +1,40 @@
+/**
+ * LiveCoder.net
+ * http://livecoder.net
+ * http://github.com/fritzo/livecoder.net
+ *
+ * This CodeMorror theme 'live' is a fork of the 'night' theme.
+ *
+ * Copyright (c) 2012, Fritz Obermeyer
+ * Licensed under the MIT license:
+ * http://www.opensource.org/licenses/mit-license.php
+ */
+
+.cm-s-live {
+  color: #bebebe;
+  background: 'rgba(0,0,0,0)';
+}
+.cm-s-live div.CodeMirror-selected { background: #777777 !important; }
+.cm-s-live .CodeMirror-gutter { background: #0a001f; border-right: 1px solid #aaa; }
+.cm-s-live .CodeMirror-gutter-text { color: #f8f8f8; }
+.cm-s-live .CodeMirror-cursor { border-left: 3px solid white !important; }
+
+.cm-s-live span.cm-variable,
+.cm-s-live span.cm-property,
+.cm-s-live span.cm-variable-2,
+.cm-s-live span.cm-variable-3,
+.cm-s-live span.cm-def { color: #bebebe; }
+.cm-s-live span.cm-comment { color: #33cc77; }
+.cm-s-live span.cm-atom,
+.cm-s-live span.cm-number,
+.cm-s-live span.cm-attribute,
+.cm-s-live span.cm-string { color: #dd7777; }
+.cm-s-live span.cm-keyword,
+.cm-s-live span.cm-meta,
+.cm-s-live span.cm-tag { color: #ffff00; }
+.cm-s-live span.cm-error { color: #9d1e15; }
+.cm-s-live span.cm-bracket { color: #40ffff; }
+.cm-s-live span.cm-builtin,
+.cm-s-live span.cm-special { color: #ff9e59; }
+.cm-s-live span.cm-link { color: #845dc4; }
+
