@@ -13,6 +13,7 @@ jquery.timeago.js
 safety.js
 wavencoder.js
 codemirror.min.js
+searchcursor.js
 codemirror.css
 cm-live.js
 
