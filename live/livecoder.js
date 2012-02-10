@@ -178,6 +178,7 @@ var live = (function(){
         do {
           cursor.replace('nonce');
         } while (cursor.findNext());
+        setTimeout(_compileSource, 0);
       }
 
       _success();

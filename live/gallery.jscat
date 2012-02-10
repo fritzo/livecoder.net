@@ -1,5 +1,37 @@
 
 //==============================================================================
+// 1328845920624.js
+
+// simple drawing program:
+
+// set brush parameters here
+var airbrush = true; // style flag
+var radius = 8; // brush radius
+context.fillStyle = 'rgba(255,255,255,0.02)'; // brush color
+context.strokeStyle = 'green'; // line color
+
+always.draw = airbrush ? (function () {
+
+  context.beginPath();
+  context.arc(mouseX, mouseY, radius, 2 * Math.PI, false);
+  context.fill();
+  
+}) : (function () {
+  
+  if (vars.lastX) {
+    context.beginPath();
+    context.moveTo(vars.lastX, vars.lastY);
+    context.lineTo(mouseX, mouseY);
+    context.stroke();
+  }
+  vars.lastX = mouseX;
+  vars.lastY = mouseY;
+
+});
+
+nonce clear(); // erase the 'n' to clear canvas
+
+//==============================================================================
 // 1326994044727.js
 
 // devil's staircase scale:
@@ -193,24 +225,24 @@ var bass = function (f) {
 vars.hi = vars.hi || bass(1/4);
 vars.low = vars.low || bass(1/6);
 
-var player = function (name) {
-  return function () { play(vars[name]); };
+var playLater = function (name, delay) {
+  setTimeout(function(){ play(vars[name]); }, delay);
 };
 
 vars.loop = function () {
   setTimeout(vars.loop, PERIOD); // recurse before possible errors
   
-  setTimeout(player('long'), PERIOD * 0/1);
-  setTimeout(player('short'), PERIOD * 1/4);
-  setTimeout(player('short'), PERIOD * 2/4);
-  setTimeout(player('short'), PERIOD * 3/4);
-  setTimeout(player('short'), PERIOD * 7/8);
+  playLater('long', PERIOD * 0/1);
+  playLater('short', PERIOD * 1/4);
+  playLater('short', PERIOD * 2/4);
+  playLater('short', PERIOD * 3/4);
+  playLater('short', PERIOD * 7/8);
 
   var r = Math.random;
   var lowTime = Math.round(1 + r() + r() + r() + r()) / 8;
   var hiTime = lowTime + Math.round(r() + r() + r()) / 8;
-  setTimeout(player('low'), lowTime * PERIOD);
-  setTimeout(player('hi'), hiTime * PERIOD);
+  playLater('low', lowTime * PERIOD);
+  playLater('hi', hiTime * PERIOD);
 };
 
 once vars.loop(); // erase the 'n' to start a loop
