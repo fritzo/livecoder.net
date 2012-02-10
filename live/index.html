@@ -235,10 +235,12 @@ ui.popHash = function () {
 ui.shareHash = function () {
   var href = ui.getHash();
   var html = "<iframe width='480' height='240' src='" + href + "'></iframe>";
+  var mailto = $('#shareTemplate').attr('href') + encodeURIComponent(href);
 
   $('#shareBoxCopied').hide();
   $('#shareBox').fadeIn(100);
   $('#shareBoxText').val(href).focus().select();
+  $('#shareSubmit').attr('href', mailto);
   $('#shareBoxHtml').val(html);
 
   if (window.clipboardData) {
@@ -412,8 +414,7 @@ $(function() {
 <link rel='stylesheet' href='codemirror.css' />
 <style>
 
-body,
-button {
+body {
   color: white;
   background-color: black;
   font-size: 12pt;
@@ -634,8 +635,17 @@ dt {
   font-size: large;
 }
 #shareBox button {
-  width: 40%;
+  color: white;
+  border: solid 1px #aaaaaa;
+  border-radius: 1ex;
+  background-color: #777777;
+  padding: 0.4ex;
+  padding-left: 1ex;
+  padding-right: 1ex;
   font-size: x-large;
+}
+#shareBox a {
+  text-decoration: none;
 }
 
 /* back-to-front */
@@ -685,17 +695,24 @@ canvas { z-index: 0; }
 </div>
 
 <div id='shareBox'>
+  <p>
   Share this link:
   <br />
   <textarea id='shareBoxText' rows=2 cols=48 readonly spellcheck='false'
     onclick='select()'></textarea>
-  <br />
+  </p>
+  <p>
   Embed this HTML:
   <br />
   <textarea id='shareBoxHtml' rows=2 cols=48 readonly spellcheck='false'
     onclick='select()'></textarea>
   <br />
   <span id='shareBoxCopied'>Copied to clipboard!</span>
+  </p>
+  <p>
+  <a id='shareSubmit' href=''><button>Submit small demo to gallery</button></a>
+  <a id='shareTemplate' href='mailto:fritz.obermeyer@gmail.com?subject=%5BSUBMIT%20livecoder.net%5D&body=Please%20consider%20adding%20this%20awesome%20demo%20to%20the%20gallery%3A%0A%0A' style='display:none'></a>
+  </p>
 </div>
 
 <!---------------------------------------------------------------------------->
