@@ -361,7 +361,7 @@ $(function() {
   $('#su').click(nosu).attr('title', 'leave superuser mode');
 
   $('#showHelp').click(function(){ $('#help').fadeToggle(100); });
-  $('#help').click(function(){ $('#help').fadeToggle(100); });
+  //$('#help').click(function(){ $('#help').fadeToggle(100); });
 
   $('#save').click(ui.saveScript);
   $('#showGallery').click(function(){
@@ -702,7 +702,7 @@ canvas { z-index: 0; }
 <div class='info' id='help'>
 <pre>
 <b>LiveCoder.net</b>  =  A simple browser environment         <a href='http://github.com/fritzo/livecoder.net'>(fork me on github)</a>
-                  for coding live javascript
+                  for coding live javascript                <a href='https://github.com/fritzo/livecoder.net/issues'>(report a bug)</a>
 
 <b>Language Extensions</b>
 
@@ -769,6 +769,10 @@ canvas { z-index: 0; }
 
   <a href='http://impromptu.moso.com.au'>Impromptu</a>
     a live coding IDE for video and audio
+
+  <a href='http://glsl.heroku.com/'>GLSL sandbox</a>
+    mrdoob's live coding environment for GLSL in the browser
+    (with community gallery &amp; forking)
 
   <a href='http://sketchpad.cc'>Studio Sketchpad</a>
     a browser-based IDE for <a href='http://processingjs.org/'>processing.js</a>
