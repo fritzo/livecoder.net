@@ -1,7 +1,3 @@
-
-// the first part is just a copy of
-// codemirror-2.2.1/mode/javascript/javascript.js
-
 CodeMirror.defineMode("javascript", function(config, parserConfig) {
   var indentUnit = config.indentUnit;
   var jsonMode = parserConfig.json;
@@ -362,24 +358,3 @@ CodeMirror.defineMode("javascript", function(config, parserConfig) {
 
 CodeMirror.defineMIME("text/javascript", "javascript");
 CodeMirror.defineMIME("application/json", {name: "javascript", json: true});
-
-//----------------------------------------------------------------------------
-// the rest is an overlay parser customized to livecoder
-
-CodeMirror.defineMode("live", function(config, parserConfig) {
-  var live = /^\b(vars|once|always|clear|using|help|print|error|assert|assertEqual|assertEval|assertLength|TODO)\b/;
-  var liveLang = /^\b(vars|once|always|clear|using)\b/;
-  var liveDebug = /^\b(help|print|error|assert|assertEqual|assertEval|assertLength)\b/;
-  var liveTodo = /^\bTODO\b/;
-  var liveOverlay = {
-    token: function(stream, state) {
-      if (stream.match(liveLang)) return "live-lang";
-      if (stream.match(liveDebug)) return "live-debug";
-      if (stream.match(liveTodo)) return "live-todo";
-      while (stream.next() != null && !stream.match(live, false)) {}
-      return null;
-    }
-  };
-  return CodeMirror.overlayParser(CodeMirror.getMode(config, parserConfig.backdrop || "text/javascript"), liveOverlay, true);
-});
-

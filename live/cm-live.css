@@ -24,11 +24,13 @@
 .cm-s-live span.cm-variable-2,
 .cm-s-live span.cm-variable-3,
 .cm-s-live span.cm-def { color: #bebebe; }
-.cm-s-live span.cm-comment { color: #33cc77; }
+.cm-s-live span.cm-comment { color: #99aaff !important; }
 .cm-s-live span.cm-atom,
 .cm-s-live span.cm-number,
 .cm-s-live span.cm-attribute,
-.cm-s-live span.cm-string { color: #dd7777; }
+.cm-s-live span.cm-string { color: #dd8888 !important; }
+
+#help span.keyword,
 .cm-s-live span.cm-keyword,
 .cm-s-live span.cm-meta,
 .cm-s-live span.cm-tag { color: #ffff00; }
@@ -37,4 +39,17 @@
 .cm-s-live span.cm-builtin,
 .cm-s-live span.cm-special { color: #ff9e59; }
 .cm-s-live span.cm-link { color: #845dc4; }
+
+/* the rest are extensions for the overlay parser */
+
+#help span.lang,
+.cm-s-live span.cm-live-lang { color: #33cc77; }
+
+#help span.debug,
+.cm-s-live span.cm-live-debug { color: #ee9900; }
+
+#help span.todo,
+.cm-s-live span.cm-live-todo { color: #ffffff; }
+
+/* #help span { font-weight: bold; } */
 

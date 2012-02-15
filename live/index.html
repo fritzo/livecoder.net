@@ -6,7 +6,7 @@
 
   Copyright (c) 2012, Fritz Obermeyer
   Licensed under the MIT license:
-  http://www.opensource.org/licenses/mit-license.php
+  http://www.opensource.org/licenses/MIT
 -->
 <html manifest='cache.manifest'>
 <head>
@@ -26,8 +26,10 @@
 
 <!-- MIT -->
 <script src='codemirror.min.js'></script>
-<script src='searchcursor.js'></script>
 <script src='cm-live.js'></script>
+
+<!-- Apache 2.0 -->
+<script src='diff_match_patch.js'></script>
 
 <!-- MIT,GPL2 -->
 <script type='text/javascript' src='safety.js'></script>
@@ -35,644 +37,37 @@
 
 <!-- MIT -->
 <script type='text/javascript' src='livecoder.js'></script>
+<script type='text/javascript' src='ui.js'></script>
+
+<!-- XXX this is huge and expensive; TODO try to factor out to a module -->
+<!-- GPL3 -->
+<script src='speakGenerator.js'></script>
+<!-- <script src='speakClient.js'></script> -->
+<script type='text/javascript' src='audio.js'></script>
 
 <!-- MIT -->
-<script type='text/javascript'>
-
-var ui = {};
-
-//------------------------------------------------------------------------------
-// LocalStorage Persistence
-
-// WARNING if multiple windows/tabs are open, only the latest will autosave
-ui.getAutosave = function () {
-
-  var changed = false;
-  live.oncompile(function(){ changed = true; });
-
-  var autosave = function () {
-    if (changed) {
-      changed = false;
-      localStorage.setItem('autosave.js', live.getSource());
-    }
-    setTimeout(autosave, 500);
-  };
-  autosave();
-
-  return localStorage.getItem('autosave.js');
-};
-
-ui.saveScript = function () {
-  var name = String(Date.now()) + '.js';
-  localStorage.setItem(name, live.getSource());
-  log('saved ' + name);
-  ui.buildScriptList();
-};
-
-ui.loadScript = function (name) {
-  log('loading ' + name);
-  live.setSource(localStorage.getItem(name));
-};
-
-ui.deleteScript = function (name) {
-  localStorage.removeItem(name);
-  ui.buildScriptList();
-  log('deleted ' + name);
-  $('#gallery td button').first().focus();
-};
-
-ui.listScripts = function () {
-
-  var keys = new Array(localStorage.length);
-  for (var i = 0, I = localStorage.length; i < I; ++i) {
-    keys[i] = localStorage.key(i);
-  }
-
-  keys = keys.filter(function (key) { return /^[0-9]+\.js$/.test(key); });
-  keys.sort();
-  keys.reverse();
-
-  return keys;
-};
-
-ui.buildScriptLink = function (key) {
-
-  var create = function (tag) { return $(document.createElement(tag)); };
-  
-  var tr = create('tr');
-
-  var fullSource = $.trim(localStorage.getItem(key));
-  var briefSource = fullSource.replace(/\s+/g, ' ').substr(0,60) + '...';
-
-  var collapse = function () {
-    $('.fullPreview').filter(':not(:hidden)').slideUp(150)
-      .prev().slideDown(50);
-  };
-
-  var full = create('pre')
-    .append(create('code').text(fullSource))
-    .attr('class', 'fullPreview')
-     //.attr('title', 'click to collapse')
-    .hide();
-  var brief = create('pre')
-    .append(create('code').text(briefSource))
-    .attr('class', 'briefPreview')
-    .attr('title', 'click to expand')
-    .click(function(){
-          collapse();
-          brief.hide();
-          full.slideDown(150);
-        })
-    .show();
-
-  tr.append(create('td')
-      .append(brief, full));
-      // older simpler version
-      //.click(function(){
-      //      brief.slideToggle(50);
-      //      full.slideToggle(150);
-      //    }));
-
-  var time_js = key.split('.');
-  var time = Number(time_js[0]);
-  var timeago = $.timeago(new Date(time));
-  tr.append(create('td')
-        .html(timeago)
-        .attr('class', 'timeago')
-        .attr('title', 'click to collapse')
-        .click(collapse));
-
-  tr.append(create('td')
-      .attr('title', 'click to collapse')
-      .click(collapse)
-      .append(create('button')
-          .html('load').attr('class','roundFlat')
-          .attr('title', 'load in editor')
-          .click(function(){ ui.loadScript(key); }))
-      .append(create('button')
-          .html('delete').attr('class','flatRound')
-          .attr('title', 'delete from local storage')
-          .click(function(){
-            tr.fadeOut(150, function(){ ui.deleteScript(key); });
-          })));
-
-  return tr;
-};
-
-ui.buildScriptList = function () {
-  var create = function (tag) { return $(document.createElement(tag)); };
-
-  var keys = ui.listScripts();
-
-  $('#showGallery').html('gallery (' + keys.length + ')');
-
-  var menu = $('#gallery table').empty();
-  for (var i = 0; i < keys.length; ++i) {
-    var key = keys[i];
-    menu.append(ui.buildScriptLink(key));
-  }
-  menu.append(create('tr').css('height','3ex'));
-};
-
-//------------------------------------------------------------------------------
-// Import/Export
-
-ui.exportGallery = function () {
-  var keys = ui.listScripts();
-
-  var sep = '\n\n'
-          + '//======================================'
-          + '========================================'
-          + '\n'
-          + '// ';
-  var scripts = [];
-  for (var i = 0; i < keys.length; ++i) {
-    var name = keys[i];
-    var script = localStorage.getItem(name).trim();
-    scripts[i] = sep + name + '\n\n' + script;
-  }
-
-  return scripts.join('');
-};
-
-ui.importGallery = function (concatenatedScripts) {
-  var sep = /^\/\/={40,}\n\/\/\s*(?=[0-9]+\.js$)/gm;
-  var scripts = concatenatedScripts.split(sep).slice(1);
-
-  //console.log('importing ' + scripts.length + ' files');
-  for (var i = 0; i < scripts.length; ++i) {
-    try {
-      var name_script = scripts[i];
-      var name = name_script.match(/^[0-9]+\.js\b/)[0];
-      var script = name_script.slice(name.length).trim();
-
-      //console.log(' importing ' + name);
-      localStorage.setItem(name, script);
-    } catch (err) { alert(err); }
-  }
-
-  ui.buildScriptList();
-};
-
-//------------------------------------------------------------------------------
-// Hash Persistence
-
-ui.getHash = function () {
-  var hashedSource = encodeURIComponent(live.getSource());
-  return window.location.href.split('#')[0] + '#' + hashedSource;
-};
-
-ui.popHash = function () {
-  if (window.location.hash && window.location.hash.length > 1) {
-    var source = decodeURIComponent(window.location.hash.substr(1));
-    window.location.hash = '';
-    return source;
-  } else {
-    return undefined;
-  }
-};
-
-ui.shareHash = function () {
-  var href = ui.getHash();
-  var html = "<iframe width='480' height='240' src='" + href + "'></iframe>";
-  var mailto = $('#shareTemplate').attr('href') + encodeURIComponent(href);
-
-  $('#shareBoxCopied').hide();
-  $('#shareBox').fadeIn(100);
-  $('#shareBoxText').val(href).focus().select();
-  $('#shareSubmit').attr('href', mailto);
-  $('#shareBoxHtml').val(html);
-
-  if (window.clipboardData) {
-    window.clipboardData.setData(href);
-    $('#shareBoxCopied').show();
-  }
-};
-
-//------------------------------------------------------------------------------
-// Hiding
-
-// these cycle between 2 states
-
-ui.showToolbar = function (speed) {
-  if (speed == undefined) speed = 100;
-  return function (e) {
-    $('#toolbar').fadeIn(speed, function(){ $('#showToolbar').hide(); });
-    $('#hideToolbar').focus();
-    if (e) e.preventDefault();
-  };
-};
-
-ui.hideToolbar = function (speed) {
-  if (speed == undefined) speed = 100;
-  return function (e) {
-    $('#showToolbar').show();
-    $('#toolbar').fadeOut(speed);
-    $('#showToolbar button').focus();
-    if (e) e.preventDefault();
-  };
-};
-
-//------------------------------------------------------------------------------
-// Admin
-
-var su = function () {
-  // turn on the ugly stuff
-  $('#importExport, #su').show();
-  localStorage.setItem('su', Date.now());
-};
-
-var nosu = function () {
-  // turn off the ugly stuff
-  $('#importExport, #su').hide();
-  localStorage.removeItem('su');
-};
-
-//------------------------------------------------------------------------------
-// Main
-
-ui.blink = function ($button) {
-  $button.css({opacity:0}).animate({opacity:1},'fast');
-};
-
-$(window).keydown(function (event) {
-  switch (event.which) {
-
-    // ESCAPE = hold/continue compiling
-    case 27:
-      live.toggleCompiling();
-      event.preventDefault();
-      break;
-
-    // CTRL+S to save
-    case 115: // WTF?
-    case 83:
-      if (!event.ctrlKey) break;
-    case 19: // cmd+S on mac
-      ui.blink($('#save'));
-      ui.saveScript();
-      event.preventDefault();
-      break;
-
-    // CTRL+O to show gallery
-    case 79:
-      if (!event.ctrlKey) break;
-    //case ???: // cmd+O on mac
-      ui.blink($('#showGallery'));
-      $('#gallery').fadeToggle('fast');
-      ui.buildScriptList();
-      event.preventDefault();
-      break;
-
-    // F1 = show help
-    case 112:
-      ui.blink($('#showHelp'));
-      $('#help').toggle();
-      event.preventDefault();
-      break;
-  }
-});
-
-$(function() {
-
-  // build editor
-
-  var hideOverlays = function () {
-    $('#gallery,#shareBox,#help').fadeOut('fast');
-  };
-  $('#log').on('focus', hideOverlays);
-
-  // XXX HACK FIXME
-  $('#log')
-      .attr('title','resize with arrow keys')
-      .keydown(function(event){
-            var $log = $(event.target);
-            var dheight = 0;
-            switch (event.which) {
-              case 38: dheight = 20; break;
-              case 40: dheight = -20; break;
-              default: return;
-            };
-            var height = Number($log.css('height').replace('px',''));
-            var maxHeight = window.innerHeight * 2/3;
-            height = Math.max(30, Math.min(maxHeight, height + dheight));
-            $log.css('height', height + 'px');
-          });
-
-  if ('su' in localStorage) su();
-  $('#su').click(nosu).attr('title', 'leave superuser mode');
-
-  $('#showHelp').click(function(){ $('#help').fadeToggle(100); });
-  //$('#help').click(function(){ $('#help').fadeToggle(100); });
-
-  $('#save').click(ui.saveScript);
-  $('#showGallery').click(function(){
-    $('#gallery').fadeToggle('fast');
-    ui.buildScriptList();
-  });
-  $('#share').click(ui.shareHash);
-
-  $('#export').click(function(){
-        $('#galleryBox').val(ui.exportGallery).focus().select();
-      });
-  $('#import').click(function(){
-        ui.importGallery($('#galleryBox').val());
-      });
-
-  $('#showToolbar').click(ui.showToolbar());
-  $('#hideToolbar').click(ui.hideToolbar());
-
-  // initialize livecoder
-
-  var initSource = (ui.popHash() || ui.getAutosave() || '').trim();
-  $.get('gallery.jscat', function(val){ ui.importGallery(val); });
-
-  // hide controls if window is an iframe
-  if (window.location != window.parent.location) {
-    ui.hideToolbar(0)();
-  } else {
-    ui.showToolbar(0)();
-  }
-
-  var canvas2d = document.getElementById('canvas2d');
-  live.init({
-        $source: $('#source'),
-        $log: $('#log'),
-        $status: $('#showToolbar button, #hideToolbar'),
-        canvas2d: canvas2d,
-        initSource: initSource,
-        onFocus: hideOverlays
-      });
-});
-
-</script>
-
-<!---------------------------------------------------------------------------->
-
-<link rel='stylesheet' href='toolbar.css' />
-<link rel='stylesheet' href='cm-live.css' />
 <link rel='stylesheet' href='codemirror.css' />
-<style>
+<link rel='stylesheet' href='cm-live.css' />
 
-body {
-  color: white;
-  background-color: black;
-  font-size: 12pt;
-  font-family: helvetica, verdana, sans;
-}
+<!-- MIT -->
+<link rel='stylesheet' href='toolbar.css' />
+<link rel='stylesheet' href='ui.css' />
 
-body {
-  width:  100%;
-  height: 100%;
-  margin: 0px;
-}
-
-canvas {
-  position: fixed; 
-  top: 0px;
-  left: 0px;
-}
-
-pre,
-code,
-textarea,
-.CodeMirror {
-  font-family:
-    /* serif */
-    Courier,
-    'Courier New',
-    'Lucida Console',
-    'Freemono',
-    'Monaco',
-    /* sans */
-    'DejaVu Sans Mono',
-    'Liberation Mono',
-    'Droid Sans Mono',
-    monospace;
-}
-
-.CodeMirror,
-#editor textarea {
-  position: fixed;
-  font-weight: bold;
-  font-size: small;
-  line-height: 1em;
-
-  margin: 0px;
-  padding: 0px;
-  border: 0px;
-  outline: none;
-  resize: none;
-  overflow: auto; 
-}
-#source,
-.CodeMirror {
-  /*
-  text-shadow: 1px 1px 0ex black,
-               1px -1px 0ex black,
-               -1px 1px 0ex black,
-               -1px -1px 0ex black;
-  */
-  text-shadow: +1px +2px 0ex black,
-               +1px -2px 0ex black,
-               -1px +2px 0ex black,
-               -1px -2px 0ex black,
-               +2px +1px 0ex black,
-               +2px -1px 0ex black,
-               -2px +1px 0ex black,
-               -2px -1px 0ex black;
-
-  top: 0%;
-  height: 100%;
-  /*
-  bottom: 2ex;
-  */
-  left: 1%;
-  width: 99%;
-
-  color: #ccffcc;
-  background-color: rgba(0,0,0,0);
-}
-#log {
-  height: 10ex;
-  bottom: 0ex;
-  left: 1%;
-  width: 99%;
-  resize: vertical;
-
-
-  color: #ffff00;
-  background-color: rgba(0,0,0,0.666);
-}
-
-.info {
-  position: absolute;
-  width: 80%;
-  left: 10%;
-  top: 0px;
-
-  font-size: medium;
-  text-align: center;
-
-  border: solid 12px;
-  border-radius: 18px;
-  background-color: #222222;
-  border-color: #222222;
-  opacity: 1;
-
-  display: none; /* initially */
-}
-.info p {
-  text-align: left;
-}
-.info a,
-.info a:visited {
-  color: #aaaaff;
-  text-decoration: none;
-  font-weight: bold;
-}
-.info h1,
-.info h2 {
-  color: #aaaaaa;
-  font-weight: bold;
-}
-
-dl {
-  text-align: left;
-}
-dt {
-  float: left;
-  clear: left;
-  padding: 0.5em;
-  text-align: right;
-  font-weight: bold;
-}
-#help pre {
-  text-align: left;
-  font-size: small;
-  color: white;
-  /*
-  background-color: black;
-  */
-}
-
-#su {
-  display: none;
-}
-
-.briefPreview {
-  font-size: small;
-  border: 0px;
-  margin: 0px;
-}
-.fullPreview {
-  font-size: small;
-  border: solid 1px gray;
-  padding:2px;
-  margin: 0px;
-  color: #ccffcc;
-}
-.timeago {
-  font-size: small;
-  text-align: right;
-}
-#gallery {
-  position: absolute;
-  bottom: 0px;
-  max-height: 50%;
-  display: none;
-}
-#gallery table {
-  background-color: black;
-}
-#gallery table tr td {
-  white-space: nowrap;
-  padding: 0px 0.25em 0px 0.25em;
-  vertical-align: top;
-}
-
-#galleryBox {
-  margin: 0px;
-  border: solid 2px black;
-  color: white;
-  background-color: #444444;
-  font-weight: bold;
-  font-size: small;
-  border-radius: 4px;
-}
-#galleryBox:hover
-{
-  background-color: #666666;
-}
-#galleryBox,
-#export,
-#import {
-  vertical-align: middle;
-}
-#importExport {
-  display: none;
-}
-
-#shareBox {
-  position: fixed;
-  top: 10%;
-  left: 10%;
-
-  font-size: x-large;
-
-  background-color: #444444;
-  border: solid 12px #444444;
-  border-radius: 18px;
-  opacity: 1;
-  display: none; /* initially */
-}
-#shareBox textarea {  
-  overflow: hidden;
-  height: 5.2ex;
-
-  font-family: helvetica, verdana, sans;
-  font-weight: bold;
-  font-size: large;
-}
-#shareBox button {
-  color: white;
-  border: solid 1px #aaaaaa;
-  border-radius: 1ex;
-  background-color: #777777;
-  padding: 0.4ex;
-  padding-left: 1ex;
-  padding-right: 1ex;
-  font-size: x-large;
-}
-#shareBox a {
-  text-decoration: none;
-}
-
-/* back-to-front */
-canvas { z-index: 0; }
-
-#source { z-index: 10; }
-#log { z-index: 11; } /* in front of source, but usually hidden */
-
-#gallery { z-index: 19; }
-#toolbar, #showToolbar { z-index: 20; }
-
-#shareBox { z-index: 29; }
-#help { z-index: 30; }
-
-</style>
 </head>
 <!---------------------------------------------------------------------------->
 <body>
 
 <canvas id='canvas2d'></canvas>
+<div id='audio'></div> <!-- needed by speakClient.js -->
 
 <div id='editor'>
   <div><textarea id='source' name='source' spellcheck='false'></textarea></div>
   <textarea id='log' readonly spellcheck='false'></textarea>
 </div>
 
-<div class='toolbar' id='showToolbar'> <button title='show toolbar'>:)</button> </div>
+<div class='toolbar'>
+  <button class='statusFace' id='showToolbar' title='show toolbar'>:)</button>
+</div>
 <div class='toolbar' id='toolbar'>
   <button class='roundRound' id='su'>su</button>
   &nbsp;
@@ -682,7 +77,7 @@ canvas { z-index: 0; }
   --><button class='flatFlat' id='showGallery' title='shortcut = CTRL+O'>gallery</button><!--
   --><button class='flatRound' id='share'>share</button>
   &nbsp;
-  <button id='hideToolbar' title='hide toolbar'>:)</button>
+  <button class='statusFace' id='hideToolbar' title='hide toolbar'>:)</button>
 </div>
 
 <div class='toolbar' id='gallery'>
@@ -723,59 +118,73 @@ canvas { z-index: 0; }
 
 <b>Language Extensions</b>
 
-  vars...       A place to put persistent data
+  <span class='lang'>vars</span>._        A place to put persistent data
 
-  always...     A place to put functions to be continuously called
+  <span class='lang'>once</span>._        A place to put functions that run once
 
-  once {...},   Once-wrapped code is evaluated only on the first compile.
-  nonce {...}   Thereafter, 'once' degenerates to 'nonce'.
-                Switch 'nonce' -&gt; 'once' to compile again.
-                (this feature partially replaces a REPL + history)
+  <span class='lang'>always</span>._      A place to put functions that run continuously
 
-  clear()       Clears everything: vars, always, setTimout tasks, canvas
-<!--
-  using(url)    Loads &amp; caches a remote script (useful for libraries)
--->
+  <span class='lang'>clear</span>()       Clears everything: vars, once, always, setTimout tasks, canvas
+
+  <span class='lang'>using</span>(url)    Loads &amp; caches a remote script (useful for libraries)
+
 <b>Coding Tools</b>
 
-  help(-)       Looks inside any object/function (useful for hacking :)
+  <span class='debug'>help</span>(-)       Looks inside any object/function (great for hacking :)
 
-  print(-),     Prints messages to log area
-  error(-)
+  <span class='debug'>print</span>(-),     Print messages to log area
+  <span class='debug'>error</span>(-)
 
-  assert(-,-)   assert(condition, message) throws if 'condition' is false
+  <span class='debug'>TODO</span>(-)       TODO(optionalMessage) is a placeholder for unfinished code
 
-<b>Audio (using HTML5 audio elements)</b>
+  <span class='debug'>assert</span>,       Assertions throw errors unless some condition is met
+  <span class='debug'>assertEval</span>,   (see help(-) for details)
+  <span class='debug'>assertEqual</span>,
+  <span class='debug'>assertLength</span>
 
-  encodeWav(-)  Encodes an array of [-1,1]-valued samples -&gt; wav data uri
+<b>Graphics (using <a href='https://developer.mozilla.org/en/HTML/Canvas'>HTML5 canvas</a>)</b>
 
-  play(-)       Plays a wav data uri (eg as generated by encodeWav)
+  draw          A <a href='https://developer.mozilla.org/en/Canvas_tutorial'>2D canvas context</a>
+
+  mouseX,       Current mouse coordinates in pixels
+  mouseY
+
+<b>Audio (using <a href='https://developer.mozilla.org/En/HTML/Element/Audio'>HTML5 audio</a>)</b>
+
+  say(text)     Speaks text out loud
+
+  speech(text)  Synthesizes a wav file from text
+
+  synth(-)      Encodes an array of [-1,1]-valued samples to a wav file
+
+  play(-)       Plays a wav url, as generated by speech/synth/tone/noise
 
   tone(-)       Generates and encodes a linearly-ramped sine wave
                 (see examples or try help(tone) for details)
 
   noise(-)      Generates and encodes broad or narrow band noise
-                (see examples or try help(tone) for details)
+                (see examples or try help(noise) for details)
 
   sampleRate,   Constants in kHz (all time units are ms or kHz)
   middleC
 
-<b>Graphics (using HTML5 canvas)</b>
-
-  context       A 2D canvas context
-
-  mouseX,       Current mouse coordinates in pixels
-  mouseY
-
 <b>Keyboard Shortcuts</b>
 
-  ESCAPE        pause/continue compiling code
-                (useful for atomic modifications)
-
-  CTRL+S        save code locally
-  CTRL+O        show list of local scripts
-
   F1            show/hide help (this message)
+
+  ESCAPE        pause/continue compiling code
+                (useful for atomic edits)
+
+  CTRL-S        save code locally                 = CMD-S
+  CTRL-O        open local gallery of codes       = CMD-O
+
+  CTRL-SPACE    Autocomplete                      = CMD-SPACE
+
+  CTRL-F        Start searching                   = CMD-F
+  CTRL-G        Find next                         = CMD-G
+  SHIFT-CTRL-G  Find previous                     = SHIFT-CMD-G
+  SHIFT-CTRL-F  Replace                           = CMD-OPTION-F
+  SHIFT-CTRL-R  Replace all                       = SHIFT-CMD-OPTION-F
 
 -------------------------------------------------------------------------
 
@@ -842,29 +251,29 @@ canvas { z-index: 0; }
 <!-- Google Analytics -->
 <script type="text/javascript">
 
-if (location.hostname === 'livecoder.net') {
-var _gaq = [['_setAccount', 'UA-29051281-1'], ['_trackPageview']];
-(function() {
-  var ga = document.createElement('script');
-  ga.type = 'text/javascript';
-  ga.async = true;
-  ga.src = 'http://www.google-analytics.com/ga.js';
-  var s = document.getElementsByTagName('script')[0];
-  s.parentNode.insertBefore(ga, s);
-})();
-} // livecoder.net
+var _gaq;
 
-else if (location.hostname === 'fritzo.org') {
-var _gaq = [['_setAccount', 'UA-28196512-1'], ['_trackPageview']];
-(function() {
-  var ga = document.createElement('script');
-  ga.type = 'text/javascript';
-  ga.async = true;
-  ga.src = 'http://www.google-analytics.com/ga.js';
-  var s = document.getElementsByTagName('script')[0];
-  s.parentNode.insertBefore(ga, s);
-})();
-} // fritzo.org
+switch (location.hostname) {
+
+  case 'livecoder.net':
+    _gaq = [['_setAccount', 'UA-29051281-1'], ['_trackPageview']];
+    break;
+
+  case 'fritzo.org':
+    _gaq = [['_setAccount', 'UA-28196512-1'], ['_trackPageview']];
+    break;
+}
+
+if (_gaq) {
+  (function() {
+    var ga = document.createElement('script');
+    ga.type = 'text/javascript';
+    ga.async = true;
+    ga.src = 'http://www.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(ga, s);
+  })();
+}
 
 </script>
 

@@ -1,26 +1,41 @@
 CACHE MANIFEST
-# version 2011-02-09-20
+# version 2011-02-13
 
 CACHE:
 
-# Code
 index.html
-cm-live.css
-livecoder.js
-toolbar.css
-jquery.min.js
-jquery.timeago.js
-safety.js
-wavencoder.js
-codemirror.min.js
-searchcursor.js
-codemirror.css
-cm-live.js
 
-# Images
 favicon.ico
 
-# External
 http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js
+jquery.min.js
+jquery.timeago.js
+
+codemirror.min.js
+cm-live.js
+
+diff_match_patch.js
+
+safety.js
+wavencoder.js
+livecoder.js
+ui.js
+
+audio.js
+
+speakGenerator.js
+speakWorker.js
+speakClient.js
+speech.js
+
+toolbar.css
+codemirror.css
+cm-live.css
+ui.css
+
 http://www.google-analytics.com/ga.js
+
+# using(-) can request other scripts
+NETWORK:
+*
 
