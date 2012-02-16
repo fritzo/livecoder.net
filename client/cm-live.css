@@ -24,7 +24,11 @@
 .cm-s-live span.cm-variable-2,
 .cm-s-live span.cm-variable-3,
 .cm-s-live span.cm-def { color: #bebebe; }
+
+#help span.comment,
 .cm-s-live span.cm-comment { color: #99aaff !important; }
+
+#help span.atom,
 .cm-s-live span.cm-atom,
 .cm-s-live span.cm-number,
 .cm-s-live span.cm-attribute,
@@ -34,6 +38,7 @@
 .cm-s-live span.cm-keyword,
 .cm-s-live span.cm-meta,
 .cm-s-live span.cm-tag { color: #ffff00; }
+
 .cm-s-live span.cm-error { color: #9d1e15; }
 .cm-s-live span.cm-bracket { color: #40ffff; }
 .cm-s-live span.cm-builtin,

@@ -298,13 +298,29 @@ $(window).keydown(function (event) {
       event.preventDefault();
       break;
 
-    // F1 = show help
+    // F1 = show language help
     case 112:
       ui.blink($('#showHelp'));
       var $help = $('#help');
       if ($help.is(':hidden')) {
         $help.show();
         $('#help a').first().focus();
+        $('#F1target')[0].scrollIntoView();
+      } else {
+        $help.hide();
+        live.focus();
+      }
+      event.preventDefault();
+      break;
+
+    // F2 = show keyboard shortcuts
+    case 113:
+      ui.blink($('#showHelp'));
+      var $help = $('#help');
+      if ($help.is(':hidden')) {
+        $help.show();
+        $('#help a').first().focus();
+        $('#F2target')[0].scrollIntoView();
       } else {
         $help.hide();
         live.focus();

@@ -159,6 +159,9 @@ dt {
   background-color: black;
   */
 }
+#help span.key {
+  color: #ffff00;
+}
 
 .statusFace {
   font-weight: bold;
