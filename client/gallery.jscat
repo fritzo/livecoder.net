@@ -4,29 +4,32 @@
 
 // speech (needs recent browser & fast connection):
 
-using('speech.js');
+using('speech.js'); // a browser-based synthesis library
 
 once.intro = function(){ say('let me sing you a song'); };
 
-vars.la = vars.la || speech('lah');
-vars.da = vars.da || speech('dah');
-vars.di = vars.di || speech('dee');
-
-var sing = function (name) {
-  return function () { play(vars[name]); }
+var sing = function (word, opts) {
+  
+  // synthesize & cache speech
+  var hash = JSON.stringify([word,opts]);
+  vars[hash] = vars[hash] || speech(word, opts);
+  
+  // return something for setTimeout
+  return function () { play(vars[hash]); }
 };
 
-var PERIOD = 2000;
+var PERIOD = 3000;
 vars.verse = function () {
   setTimeout(vars.verse, PERIOD);
   
   var either = function (a, b) {
     return Math.random() > 0.5 ? a : b;
   };
-  
-  setTimeout(sing('la'), 0 * PERIOD);
-  setTimeout(either(sing('di'), sing('da')), 3/8 * PERIOD);
-  setTimeout(either(sing('di'), sing('da')), 4/8 * PERIOD);
+
+  // see help(speech) for options
+  setTimeout(sing('lah', {speed:0.8}), 0 * PERIOD);
+  setTimeout(sing(either('dee','da'),{pitch:70}), 2/6 * PERIOD);
+  setTimeout(sing(either('dee','da'),{amplitude:40}), 3/6 * PERIOD);
 };
 
 once.start = function(){ setTimeout(vars.verse , 2000); };

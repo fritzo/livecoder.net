@@ -42,12 +42,24 @@ speech.encode64 = function (data) {
   }
   return result;
 };
-
-speech.help = 'speech(text) synthesizes speech from text';
+{ amplitude: amplitude.value, wordgap: workdgap.value, pitch: pitch.value, speed: speed.value }
+speech.help = 'speech(text, options) synthesizes speech from text' +
+'optional options may include {' +
+'  amplitude: 100,' +
+'  pitch: 50,' +
+'  speed: 175,' +
+'  wordgap: 0' +
+'}';
 
 var say = function (text, args) {
   play(speech(text, args));
 };
 
-say.help = 'say(text) plays speech from text';
+say.help = 'say(text, options) plays speech from text' +
+'optional options may include {' +
+'  amplitude: 100,' +
+'  pitch: 50,' +
+'  speed: 175,' +
+'  wordgap: 0' +
+'}';
 

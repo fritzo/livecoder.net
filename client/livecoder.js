@@ -193,7 +193,8 @@ var live = (function(){
                 '){\n' +
                 source +
             '\n/**/})');
-      } catch (err) {
+      }
+      catch (err) {
         _warn(err);
         return;
       }
@@ -211,7 +212,8 @@ var live = (function(){
         compiled(
             vars, once, always, _clear, _setTimeout, _using,
             _help, _print, _error, _context2d);
-      } catch (err) {
+      }
+      catch (err) {
         (err instanceof Warning ? warnings : errors).push(err.toString());
       }
 
@@ -305,7 +307,8 @@ var live = (function(){
       var safeAction = function () {
         try {
           action();
-        } catch (err) {
+        }
+        catch (err) {
           _error(err);
         }
         delete tasks[id];
@@ -327,23 +330,44 @@ var live = (function(){
   // Help
 
   var _dir = function (o) {
-    if (o instanceof Array ||
-        o instanceof Uint8Array) {
-      return '[]';
+
+    if (o.length > 100) {
+      return '[...]';
     }
-    o = o || window;
+
     var a = [], i = 0;
-    for (a[i++] in o);
+    for (a[i++] in o) {}
     return a;
   };
 
-  var _help = function (o) {
-    o = o || _help;
-    _print(('help' in o ? o.help + '\n\n' : '')
-        + _dir(o) + '\n\n'
-        + o.toString());
+  var _help = function () {
+    if (arguments.length === 0) {
+      _print(_help.help);
+    } else {
+
+      var o = arguments[0];
+      var message = '';
+
+      try {
+        if ('help' in o) {
+          message += 'help: ' + o.help + '\n\n';
+        }
+      }
+      catch (err) {}
+
+      try {
+        message += 'dir: ' + _dir(o) + '\n\n';
+      }
+      catch (err) {}
+
+      message += 'JSON: ' + JSON.stringify(o) + '\n\n';
+
+      message += 'string: "' + o + '"';
+
+      _print(message);
+    }
   };
-  _help.help = 'try help(someFunction), or see the help window';
+  _help.help = 'try help(something), or see the help window';
 
   //--------------------------------------------------------------------------
   // Using external scripts
@@ -369,12 +393,13 @@ var live = (function(){
       //assert(/^(http|https|ftp):\/\/[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/ix.test(url),
       //  'invalid url: ' + url);
 
-      assert(/\.js$/.test(url), 'url extension is not .js: ' + url);
+      // this is an overly-restrictive requirement
+      //assert(/\.js$/.test(url), 'url extension is not .js: ' + url);
 
       $.ajax({ url:url, dataType:'script', cache:true })
         .done(function (script, textStatus) {
               cached[url] = 0;
-              log('using(' + url + '):' + textStatus);
+              log('using(' + url + '): ' + textStatus);
               _compileSource();
               _codemirror.focus();
             })
@@ -409,8 +434,8 @@ var live = (function(){
           }).resize();
     }
     catch (err) {
-      error(err);
       log(err);
+      _error(err);
       _context2d = undefined;
     }
 
@@ -435,7 +460,7 @@ var live = (function(){
 
     focus: function(){ _codemirror.focus(); },
 
-    none: undefined,
+    none: undefined
   };
 
 })();

@@ -187,15 +187,20 @@ ui.importGallery = function (concatenatedScripts) {
 // Hash Persistence
 
 ui.getHash = function () {
-  var hashedSource = encodeURIComponent(live.getSource());
-  return window.location.href.split('#')[0] + '#' + hashedSource;
+  var hashedSource = btoa(live.getSource());
+  return window.location.href.replace(/\/?#.*/,'') + '#a=' + hashedSource;
 };
 
 ui.popHash = function () {
   if (window.location.hash && window.location.hash.length > 1) {
-    var source = decodeURIComponent(window.location.hash.substr(1));
+    var hash = window.location.hash.substr(1);
     window.location.hash = '';
-    return source;
+    if (hash.substr(0,2) === 'a=') {
+      return atob(hash.substr(2));
+    } else {
+      // only for compatibility with older version
+      return decodeURIComponent(hash);
+    }
   } else {
     return undefined;
   }
