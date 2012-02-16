@@ -49,6 +49,7 @@ var live = (function(){
     _$log = args.$log;
     _$status = args.$status;
 
+    // TODO codemirror shift+move is slow, see how to fix
     _codemirror = CodeMirror.fromTextArea(args.$source[0], {
       mode: 'live',
       undoDepth: 512,
@@ -56,7 +57,7 @@ var live = (function(){
       onChange: _compileSource,
       theme: 'live',
       lineNumbers: false,
-      matchBrackets: true,
+      matchBrackets: false, // bracket matching is slow when moving
       workTime: 10, // very short
       workDelay: 300, // default
       pollinterval: 300, // long

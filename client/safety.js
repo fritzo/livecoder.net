@@ -56,7 +56,15 @@ var assert = function (condition, message) {
     throw new AssertException(message);
   }
 };
-assert.help = 'assert(condition, optionalMessage) throws if condition is false';
+assert.help = (
+'assert(condition, optionalMessage) throws if condition is false' +
+'see also:'+
+'  assertEval(message)' +
+'  assertEqual(lhs, rhs, optionalName)' +
+'  assertLess(lhs, rhs, optionalName)' +
+'  assertLength(array, length, optionalName)' +
+'  assertIndex(i, length, optionalName)'
+);
 
 var assertEval = function (message) {
   assert(eval(message), message);
@@ -68,17 +76,39 @@ var assertEqual = function (actual, expected, message) {
     actual = JSON.stringify(actual);
     expected = JSON.stringify(expected);
   }
-  assert(actual === expected,
-    (message || '') +
-    '\n    actual = ' + actual +
-    '\n    expected = ' + expected);
+  if (actual !== expected) {
+      throw new AssertionError(
+          (message || '') +
+          '\n    actual = ' + actual +
+          '\n    expected = ' + expected);
+  }
 };
 assertEqual.help = 'assertEqual(x, y, optionalMessage) throws if x !== y';
 
+var assertLess = function (actual, expected, message) {
+  if (!(actual < expected)) {
+      throw new AssertionError(
+          (message || '') +
+          '\n    actual = ' + actual +
+          '\n    expected < ' + expected);
+  }
+};
+assertLess.help = 'assertLess(x, y, optionalMessage) throws unless x < y';
+
 var assertLength = function (obj, length, message) {
-  assertEqual(obj.length, length, (message || '') + ' array has wrong length');
+  if (obj.length !== length) {
+     throw new AsertionError((message || '') + ' array has wrong length');
+  }
 };
 assertLength.help = 'assertLength(o, n, optionalName) throws if o.length != n';
+
+assertIndex = function (i, length, message) {
+  if (!(0 <= i && i < length && i % 1 === 0)) {
+    throw new AssertionError((message || '') + ' index out of bounds: ' + i);
+  }
+};
+assertIndex.help =
+  'assertIndex(i, I, optionalName) throws unless i in {0,...,I}';
 
 /** @constructor */
 var WorkerException = function (message) {
