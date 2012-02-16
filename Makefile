@@ -4,7 +4,6 @@ all:
 #-------------------------------------------------------------------------------
 # build & release tools
 
-
 compiler: FORCE
 	rm -rf compiler
 	mkdir compiler
@@ -112,7 +111,7 @@ clean: FORCE
 	rm -f keys.tbz2
 
 cleaner: clean FORCE
-	rm -rf extern compiler linter
+	rm -rf extern compiler
 
 FORCE:
 
