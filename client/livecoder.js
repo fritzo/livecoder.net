@@ -119,7 +119,8 @@ var live = (function(){
         }).text(':)');
   };
   var _warn = function (message) {
-    _$log.val(String(message)).css('color', '#ffff00').show();
+    log('user warning: ' + message);
+    _$log.val(message).css('color', '#ffff00').show();
     _$status.css({
           'color': '#ff0',
           'border-color': '#ff0',
@@ -127,7 +128,8 @@ var live = (function(){
         }).text(':(');
   };
   var _error = function (message) {
-    _$log.val(String(message)).css('color', '#ff7777').show();
+    log('user error: ' + message);
+    _$log.val(message).css('color', '#ff7777').show();
     _$status.css({
           'color': '#f77',
           'border-color': '#f77',
@@ -168,8 +170,36 @@ var live = (function(){
 
     var compiling = false;
     var vars = {};
-    var once = {};
     var always = {};
+    var cache = {};
+
+    var cached = function (fun) {
+      return function () {
+        var hash = fun + JSON.stringify(arguments); // HACK imprecise
+        if (hash in cache) {
+          return cache[hash];
+        } else {
+          return cache[hash] = fun.apply(this, arguments);
+        }
+      };
+    };
+
+    // this prevents fun from being reentrant
+    var scheduled = function (fun) {
+      var running = false;
+      var result = function () {
+        if (!running) {
+          running = true;
+          setTimeout(function(){ fun(); running = false; }, 0);
+        }
+      };
+      result.immediately = function () {
+        running = true;
+        fun();
+        running = false;
+      };
+      return result;
+    };
 
     // TODO live.oncompile(function(){ diffHistory.add(live.getSource()); });
     var compileHandlers = [];
@@ -177,74 +207,67 @@ var live = (function(){
       compileHandlers.push(handler);
     };
 
-    _compileSource = function () {
+    var preWrapper = (
+        '"use strict";\n' +
+        '(function(' +
+              'vars, always, cached, clear, setTimeout, using,' +
+              'help, print, error, draw' +
+            '){\n');
+    var postWrapper = '\n/**/})';
+    var compileAndEval = function (source) {
+
+      var compiled;
+      try {
+        compiled = globalEval(
+            preWrapper +
+            source.replace(/\bnonce\b/g,'if(0)') +
+            postWrapper);
+      }
+      catch (err) {
+        _warn(err);
+        return true;
+      }
+
+      _success();
+
+      try {
+        compiled(
+            vars, always, cached, _clear, _setTimeout, _using,
+            _help, _print, _error, _context2d);
+      }
+      catch (err) {
+        (err instanceof Warning ? _warn : _error)(err);
+        return true;
+      }
+
+      return false;
+    };
+
+    _compileSource = scheduled(function () {
+
       if (!compiling) {
         _warn('hit escape to compile');
         return;
       }
 
-      var source = _codemirror.getValue();
-      var compiled;
-      try {
-        compiled = globalEval(
-            '"use strict";\n' +
-            '(function(' +
-                  'vars, once, always, clear, setTimeout, using,' +
-                  'help, print, error, draw' +
-                '){\n' +
-                source +
-            '\n/**/})');
-      }
-      catch (err) {
-        _warn(err);
-        return;
+      var cursor = _codemirror.getSearchCursor(/\bonce\b/g);
+      while (cursor.findNext()) {
+
+        var firstOnce = (_codemirror.getValue()
+            .replace(/\bonce\b/,'if(1)')     // activate first once &
+            .replace(/\bonce\b[\s\S]*/,'')); // truncate remaining
+
+        if (compileAndEval(firstOnce)) return;
+
+        cursor.replace('nonce'); // deactivate first once
       }
 
-      _success();
-      var warnings = [];
-      var errors = [];
-
-      var oncePrev = {};
-      for (var key in once) {
-        oncePrev[key] = undefined;
-      }
-
-      try {
-        compiled(
-            vars, once, always, _clear, _setTimeout, _using,
-            _help, _print, _error, _context2d);
-      }
-      catch (err) {
-        (err instanceof Warning ? warnings : errors).push(err.toString());
-      }
-
-      for (var key in once) {
-        if (!(key in oncePrev)) {
-          try {
-            once[key]();
-          }
-          catch (err) {
-            delete once[key]; // try again next compile
-            var message = 'In once[' + JSON.stringify(key) + ']: ' + err;
-            (err instanceof Warning ? warnings : errors).push(message);
-          }
-        }
-      }
-
-      if (errors.length) {
-        _error(errors.concat(warnings).join(';\n'));
-        return;
-      }
-
-      if (warnings.length) {
-        _warn(warnings.join(';\n'));
-        return;
-      }
+      if (compileAndEval(_codemirror.getValue())) return;
 
       for (var i = 0; i < compileHandlers.length; ++i) {
         compileHandlers[i]();
       }
-    };
+    });
 
     _stopCompiling = function () {
       compiling = false;
@@ -264,8 +287,8 @@ var live = (function(){
 
     _clearWorkspace = function () {
       for (var key in vars) { delete vars[key]; }
-      for (var key in once) { delete once[key]; }
       for (var key in always) { delete always[key]; }
+      for (var key in cache) { delete cache[key]; }
     };
 
     var alwaysTask = function () {

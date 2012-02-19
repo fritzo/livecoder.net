@@ -121,11 +121,17 @@
                                                               <a href='https://github.com/fritzo/livecoder.net/issues'>Report a bug</a>
 <b id='F1target'>Language Extensions</b>
 
+  <span class='keyword'>once</span> {...},   'once f()' evaluates f once, then degrades to 'nonce f()'
+  <span class='keyword'>nonce</span> {...}   To evaluate again, switch 'nonce' back to 'once'
+                (this feature partially replaces a <a href='http://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop'>REPL + history</a>)
+
   <span class='lang'>vars</span>._        A place to put persistent data
-  <span class='lang'>once</span>._        A place to put functions that run once
   <span class='lang'>always</span>._      A place to put functions that run continuously
 
-  <span class='lang'>clear</span>()       Clears everything: vars, once, always, setTimeouts, canvas
+  <span class='lang'>cached</span>(f)(-)  Caches value of f applied to JSON'able arguments
+                (useful for expensive tasks like audio synthesis)
+
+  <span class='lang'>clear</span>()       Clears vars, once, always, cache, setTimeouts, canvas
 
   <span class='lang'>using</span>(url)    Loads &amp; caches a remote script (useful for libraries)
 
