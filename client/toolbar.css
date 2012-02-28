@@ -80,3 +80,8 @@
   padding-right: 0.5em;
 }
 
+.toolbar svg {
+  width: 1.2ex;
+  height: 1.2ex;
+}
+

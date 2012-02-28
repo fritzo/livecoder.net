@@ -8,8 +8,6 @@
  * Copyright (c) 2012, Fritz Obermeyer
  * Licensed under the MIT license:
  * http://www.opensource.org/licenses/MIT
- * Licensed under the GPL version 3 license:
- * http://www.opensource.org/licenses/GPL-3.0
  */
 
 // audio defaults to mono 16bit 22050 Hz
@@ -129,6 +127,9 @@ noise.help = [
 "    [gain:_,]        // optional gain in [0,1]",
 "    [frequency:_,    // optional band center frequency in kHz",
 "     bandwidth:_,]}) //      and relative bandwidth in [0,1]"].join('\n');
+
+//------------------------------------------------------------------------------
+// These require the speak.js library, wrapped for livecoder as speech.js
 
 var speech = function () {
   throw "speech(-) is not defined, try using('speech.js') first";

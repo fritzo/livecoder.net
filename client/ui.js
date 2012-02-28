@@ -8,7 +8,12 @@
  * http://www.opensource.org/licenses/MIT
  */
 
+// TODO make this a module-as-closure, since noone else uses ui
 var ui = {};
+
+ui.reset = function () {
+  coder.setSource(coder.getSource());
+};
 
 //------------------------------------------------------------------------------
 // LocalStorage Persistence
@@ -17,12 +22,12 @@ var ui = {};
 ui.getAutosave = function () {
 
   var changed = false;
-  live.oncompile(function(){ changed = true; });
+  coder.oncompile(function(){ changed = true; });
 
   var autosave = function () {
     if (changed) {
       changed = false;
-      localStorage.setItem('autosave.js', live.getSource());
+      localStorage.setItem('autosave.js', coder.getSource());
     }
     setTimeout(autosave, 500);
   };
@@ -33,14 +38,14 @@ ui.getAutosave = function () {
 
 ui.saveScript = function () {
   var name = String(Date.now()) + '.js';
-  localStorage.setItem(name, live.getSource());
+  localStorage.setItem(name, coder.getSource());
   log('saved ' + name);
   ui.buildScriptList();
 };
 
 ui.loadScript = function (name) {
   log('loading ' + name);
-  live.setSource(localStorage.getItem(name));
+  coder.setSource(localStorage.getItem(name));
 };
 
 ui.deleteScript = function (name) {
@@ -133,7 +138,7 @@ ui.buildScriptList = function () {
 
   var keys = ui.listScripts();
 
-  $('#showGallery').html('gallery (' + keys.length + ')');
+  $('#galleryCount').html(' (' + keys.length + ')');
 
   var menu = $('#gallery table').empty();
   for (var i = 0; i < keys.length; ++i) {
@@ -187,7 +192,7 @@ ui.importGallery = function (concatenatedScripts) {
 // Hash Persistence
 
 ui.getHash = function () {
-  var hashedSource = btoa(live.getSource());
+  var hashedSource = btoa(coder.getSource());
   return window.location.href.replace(/\/?#.*/,'') + '#a=' + hashedSource;
 };
 
@@ -224,30 +229,6 @@ ui.shareHash = function () {
 };
 
 //------------------------------------------------------------------------------
-// Hiding
-
-// these cycle between 2 states
-
-ui.showToolbar = function (speed) {
-  if (speed == undefined) speed = 100;
-  return function (e) {
-    $('#toolbar').fadeIn(speed, function(){ $('#showToolbar').hide(); });
-    $('#hideToolbar').focus();
-    if (e) e.preventDefault();
-  };
-};
-
-ui.hideToolbar = function (speed) {
-  if (speed == undefined) speed = 100;
-  return function (e) {
-    $('#showToolbar').show();
-    $('#toolbar').fadeOut(speed);
-    $('#showToolbar').focus();
-    if (e) e.preventDefault();
-  };
-};
-
-//------------------------------------------------------------------------------
 // Admin
 
 var su = function () {
@@ -274,7 +255,16 @@ $(window).keydown(function (event) {
 
     // ESCAPE = hold/continue compiling
     case 27:
-      live.toggleCompiling();
+      coder.toggleCompiling();
+      event.preventDefault();
+      break;
+
+    // CTRL+C to reset
+    case 67:
+      if (!event.ctrlKey) break;
+    //case ???: // cmd+C on mac
+      ui.blink($('#resetButton'));
+      ui.reset();
       event.preventDefault();
       break;
 
@@ -283,7 +273,7 @@ $(window).keydown(function (event) {
     case 83:
       if (!event.ctrlKey) break;
     case 19: // cmd+S on mac
-      ui.blink($('#save'));
+      ui.blink($('#saveButton'));
       ui.saveScript();
       event.preventDefault();
       break;
@@ -292,7 +282,7 @@ $(window).keydown(function (event) {
     case 79:
       if (!event.ctrlKey) break;
     //case ???: // cmd+O on mac
-      ui.blink($('#showGallery'));
+      ui.blink($('#galleryButton'));
       $('#gallery').fadeToggle('fast');
       ui.buildScriptList();
       event.preventDefault();
@@ -300,7 +290,7 @@ $(window).keydown(function (event) {
 
     // F1 = show language help
     case 112:
-      ui.blink($('#showHelp'));
+      ui.blink($('#helpButton'));
       var $help = $('#help');
       if ($help.is(':hidden')) {
         $help.show();
@@ -308,14 +298,14 @@ $(window).keydown(function (event) {
         $('#F1target')[0].scrollIntoView();
       } else {
         $help.hide();
-        live.focus();
+        coder.focus();
       }
       event.preventDefault();
       break;
 
     // F2 = show keyboard shortcuts
     case 113:
-      ui.blink($('#showHelp'));
+      ui.blink($('#helpButton'));
       var $help = $('#help');
       if ($help.is(':hidden')) {
         $help.show();
@@ -323,7 +313,7 @@ $(window).keydown(function (event) {
         $('#F2target')[0].scrollIntoView();
       } else {
         $help.hide();
-        live.focus();
+        coder.focus();
       }
       event.preventDefault();
       break;
@@ -332,6 +322,7 @@ $(window).keydown(function (event) {
 
 $(function() {
 
+  // set local title while developing
   if (document.location.hostname.toLowerCase() !== 'livecoder.net') {
     document.title = ( document.location.hostname
                      + document.location.pathname ).replace(/\/$/,'');
@@ -364,24 +355,29 @@ $(function() {
   if ('su' in localStorage) su();
   $('#su').click(nosu).attr('title', 'leave superuser mode');
 
-  $('#showHelp').click(function(){
+  $('#helpButton').click(function(){
         var $help = $('#help');
         if ($help.is(':hidden')) {
           $help.fadeIn(100);
           $('#help a').first().focus();
         } else {
           $help.fadeOut(100);
-          live.focus();
+          coder.focus();
         }
       });
   //$('#help').click(function(){ $('#help').fadeToggle(100); });
 
-  $('#save').click(ui.saveScript);
-  $('#showGallery').click(function(){
+  $('#playButton').click(function(){ TODO('implement play'); });
+  $('#pauseButton').click(function(){ TODO('implement pause'); });
+  $('#recordButton').click(function(){ TODO('implement record'); });
+
+  $('#resetButton').click(ui.reset);
+  $('#saveButton').click(ui.saveScript);
+  $('#galleryButton').click(function(){
     $('#gallery').fadeToggle('fast');
     ui.buildScriptList();
   });
-  $('#share').click(ui.shareHash);
+  $('#shareButton').click(ui.shareHash);
 
   $('#export').click(function(){
         $('#galleryBox').val(ui.exportGallery).focus().select();
@@ -390,25 +386,22 @@ $(function() {
         ui.importGallery($('#galleryBox').val());
       });
 
-  $('#showToolbar').click(ui.showToolbar());
-  $('#hideToolbar').click(ui.hideToolbar());
+  $('#hideButton').click(function(){
+        $('.hidableButtons').fadeToggle(100);
+      });
 
   // initialize livecoder
 
   var initSource = (ui.popHash() || ui.getAutosave() || '').trim();
   $.get('gallery.jscat', function(val){ ui.importGallery(val); });
 
-  // hide controls if window is an iframe
+  // hide buttons if window is an iframe
   if (window.location != window.parent.location) {
-    $('#showToolbar').show();
-    $('#toolbar').hide();
-  } else {
-    $('#toolbar').show();
-    $('#showToolbar').hide();
+    $('.hidableButtons').hide();
   }
 
   var canvas2d = document.getElementById('canvas2d');
-  live.init({
+  coder.init({
         $source: $('#source'),
         $log: $('#log'),
         $status: $('.statusFace'),
@@ -417,6 +410,6 @@ $(function() {
         onFocus: hideOverlays
       });
 
-  live.focus();
+  coder.focus();
 });
 

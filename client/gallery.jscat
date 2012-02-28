@@ -2,11 +2,9 @@
 //==============================================================================
 // 1329260236573.js
 
-// speech (needs recent browser & fast connection):
+// speech (needs a recent browser):
 
 using('speech.js'); // a browser-based synthesis library
-
-once say('let me sing you a song');
 
 var sing = function (word, opts) {
   var wav = cached(speech)(word, opts); // synthesize & cache speech
@@ -27,8 +25,10 @@ vars.verse = function () {
   setTimeout(sing(either('dee','da'),{amplitude:40}), 3/6 * PERIOD);
 };
 
-once setTimeout(vars.verse , 2000);
-nonce clear(); // erase the 'n' to stop
+once.start = function(){
+  say('let me sing you a song');
+  setTimeout(vars.verse , 2000);
+};
 
 //==============================================================================
 // 1328845920624.js
@@ -57,8 +57,6 @@ always.draw = [airbrush, pencil][0]; // change the index
 draw.fillStyle = 'rgba(255,255,255,0.02)'; // brush color
 draw.strokeStyle = 'green'; // line color
 vars.brushRadius = 8;
-
-nonce clear(); // erase the 'n' to clear the canvas
 
 //==============================================================================
 // 1326994044727.js
@@ -106,41 +104,49 @@ Rational.ball = function (radius) {
 };
 //print(Rational.ball(5).map(function(q){ return q.toNumber(); }));
 
-var radius = 16;      // larger radius -> more steps
-var temperature = 3;  // higher temperature -> more evenly-sized steps
-var totalTime = 6000; // in milliseconds
+var config = {
+  radius: 16,      // larger radius -> more steps
+  temperature: 3,  // higher temperature -> more evenly-sized steps
+  totalTime: 6000  // in milliseconds
+};
 
-var QQ = Rational.ball(radius);
-vars.freqs = QQ.map(function(q){
-  return middleC * q.toNumber();
-});
-var times = QQ.map(function(q){
-  return Math.exp(-q.norm() / temperature);
-});
-var sum = times.reduce(function(x,y){ return x+y; });
-var timeScale = totalTime / sum;
-vars.times = times.map(function(t){ return timeScale * t; });
+vars.scale = cached(function (config) {
 
-vars.starts = [0];
-vars.ends = [vars.times[0]];
-for (var i = 1; i < QQ.length; ++i) {
-  vars.starts[i] = vars.starts[i-1] + vars.times[i-1];
-  vars.ends[i] = vars.starts[i] + vars.times[i];
-}
+  var QQ = Rational.ball(config.radius);
+  vars.freqs = QQ.map(function(q){
+    return middleC * q.toNumber();
+  });
+  var times = QQ.map(function(q){
+    return Math.exp(-q.norm() / config.temperature);
+  });
+  var sum = times.reduce(function(x,y){ return x+y; });
+  var timeScale = config.totalTime / sum;
+  vars.times = times.map(function(t){ return timeScale * t; });
 
-if (vars.scale === undefined) {
-  var samples = new Array(totalTime * sampleRate);
+  vars.starts = [0];
+  vars.ends = [vars.times[0]];
+  for (var i = 1; i < QQ.length; ++i) {
+    vars.starts[i] = vars.starts[i-1] + vars.times[i-1];
+    vars.ends[i] = vars.starts[i] + vars.times[i];
+  }
+
+  var samples = new Array(config.totalTime * sampleRate);
   var phase = 0;
   for (var i = 0, t = 0, T = samples.length; t < T; ++t) {
     while (t / sampleRate > vars.ends[i]) ++i;
     samples[t] = 4 * Math.min(phase, 1 - phase) - 1; // triangle wave
     phase = (phase + vars.freqs[i] / sampleRate) % 1;
   }
-  vars.scale = encodeWav(samples);
-}
 
-once play(vars.scale); // erase the 'n' to play again
-nonce clear(); // erase the 'n' to recompute
+  return encodeWav(samples);
+
+})(config);
+
+once.play = function(){
+   setTimeout(once.play, config.totalTime); // recurse before possible errors
+
+   play(vars.scale);
+};
 
 //==============================================================================
 // 1324384763822.js
@@ -178,17 +184,13 @@ vars.scale = vars.scale || points.map(function(q){
   return note(q[0]/q[1]);
 });
 
-vars.play = function () {
-  setTimeout(vars.play, PERIOD); // recurse before possible errors
+once.play = function () {
+  setTimeout(once.play, PERIOD); // recurse before possible errors
 
   var n = vars.n || 0;
   play(vars.scale[n]);
   vars.n = (n + 1) % vars.scale.length;
 };
-
-once vars.play(); // erase the 'n' to start
-nonce clear(); // erase the 'n' to stop
-
 
 //==============================================================================
 // 1323324421097.js
@@ -235,12 +237,10 @@ vars.S2 = function () {
   show('-');
 };
 
-once vars.L1(); // start one of these
-once vars.S1(); // and a few of these
-once vars.S1();
-once vars.S1();
-
-nonce clear(); // erase the 'n' to stop
+once.long = vars.L1;   // start one of these
+once.short1 = vars.S1; // and a few of these
+once.short2 = vars.S1;
+once.short3 = vars.S1;
 
 //==============================================================================
 // 1323226133754.js
@@ -263,8 +263,8 @@ var playLater = function (name, delay) {
   setTimeout(function(){ play(vars[name]); }, delay);
 };
 
-vars.loop = function () {
-  setTimeout(vars.loop, PERIOD); // recurse before possible errors
+once.loop = function () {
+  setTimeout(once.loop, PERIOD); // recurse before possible errors
   
   playLater('long', PERIOD * 0/1);
   playLater('short', PERIOD * 1/4);
@@ -278,9 +278,6 @@ vars.loop = function () {
   playLater('low', lowTime * PERIOD);
   playLater('hi', hiTime * PERIOD);
 };
-
-once vars.loop(); // erase the 'n' to start a loop
-nonce clear(); // erase the 'n' to stop all loops
 
 //==============================================================================
 // 1323196209122.js
@@ -334,5 +331,7 @@ for (var t = 0, T = samples.length; t < T; ++t) {
 }
 
 var uri = encodeWav(samples); // encode to a data uri
-once play(uri); // erase the 'n' to play again
+once[0] = function(){ // increment to play again
+  play(uri);
+};
 

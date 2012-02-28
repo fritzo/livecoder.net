@@ -19,6 +19,9 @@
 .cm-s-live .CodeMirror-gutter-text { color: #f8f8f8; }
 .cm-s-live .CodeMirror-cursor { border-left: 3px solid white !important; }
 
+.cm-s-live span.cm-atom,
+.cm-s-live span.cm-number,
+.cm-s-live span.cm-attribute,
 .cm-s-live span.cm-variable,
 .cm-s-live span.cm-property,
 .cm-s-live span.cm-variable-2,
@@ -28,10 +31,7 @@
 #help span.comment,
 .cm-s-live span.cm-comment { color: #99aaff !important; }
 
-#help span.atom,
-.cm-s-live span.cm-atom,
-.cm-s-live span.cm-number,
-.cm-s-live span.cm-attribute,
+#help span.string,
 .cm-s-live span.cm-string { color: #dd8888 !important; }
 
 #help span.keyword,
