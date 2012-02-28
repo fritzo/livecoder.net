@@ -12,7 +12,7 @@ CodeMirror.defineMode("javascript", function(config, parserConfig) {
     var A = kw("keyword a"), B = kw("keyword b"), C = kw("keyword c");
     var operator = kw("operator"), atom = {type: "atom", style: "atom"};
     return {
-      "if": A, "while": A, "with": A, "else": B, "do": B, "try": B, "finally": B, "once": B, "nonce": B,
+      "if": A, "while": A, "with": A, "else": B, "do": B, "try": B, "finally": B,
       "return": C, "break": C, "continue": C, "new": C, "delete": C, "throw": C,
       "var": kw("var"), "const": kw("var"), "let": kw("var"),
       "function": kw("function"), "catch": kw("catch"),
@@ -366,9 +366,9 @@ CodeMirror.defineMIME("application/json", {name: "javascript", json: true});
 // the rest is an overlay parser customized to livecoder
 
 CodeMirror.defineMode("live", function(config, parserConfig) {
-  var live = /^\b(vars|always|cached|clear|using|help|print|error|assert|assertEqual|assertEval|assertLength|TODO)\b/;
-  var liveLang = /^\b(vars|always|cached|clear|using)\b/;
-  var liveDebug = /^\b(help|print|error|assert|assertEqual|assertEval|assertLength)\b/;
+  var live = /^\b(vars|once|always|clear|using|help|print|error|assert|assertEval|assertEqual|assertLess|assertLength|assertIndex|TODO)\b/;
+  var liveLang = /^\b(vars|once|always|clear|using)\b/;
+  var liveDebug = /^\b(help|print|error|assert|assertEval|assertEqual|assertLess|assertLength|assertIndex)\b/;
   var liveTodo = /^\bTODO\b/;
   var liveOverlay = {
     token: function(stream, state) {

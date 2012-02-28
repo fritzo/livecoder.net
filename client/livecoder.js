@@ -12,7 +12,6 @@
  * - a button for status indication
  * - a canvas for 2d drawing
  * - jQuery
- * - google diff_match_patch
  * - CodeMirror2 (see compression api http://codemirror.net/doc/compress.html)
  *   - lib/util/simple-hint.js
  *   - lib/util/javascript-hint.js
@@ -25,26 +24,25 @@
  *   - mode/javascript/javascript.js (modified for livecoder)
  *
  * Provides:
- * - an object 'live'
+ * - an object 'coder'
  *
  * Copyright (c) 2012, Fritz Obermeyer
  * Licensed under the MIT license:
  * http://www.opensource.org/licenses/MIT
  */
 
-var live = (function(){
+var coder = (function(){
 
   var alwaysPollMs = 250;
   var alwaysLoopMs = 1;
 
-  var live = {};
+  var coder = {};
 
   var _$log;
   var _$status;
   var _codemirror;
-  var _diff_match_patch;
 
-  live.init = function (args) {
+  coder.init = function (args) {
 
     _$log = args.$log;
     _$status = args.$status;
@@ -73,9 +71,7 @@ var live = (function(){
     scroller.style.height = '100%';
     scroller.style.width = '100%';
 
-    _codemirror.setValue(args.initSource || live.logo);
-
-    _diff_match_patch = new diff_match_patch();
+    _codemirror.setValue(args.initSource || coder.logo);
 
     _initGraphics(args.canvas2d);
 
@@ -83,7 +79,7 @@ var live = (function(){
     _startAlways();
   };
 
-  live.logo = [
+  coder.logo = [
       //"once say('Hello World! i am live code. try changing me.');",
       "// Hello World",
       "// i am live code",
@@ -143,12 +139,12 @@ var live = (function(){
     _context2d.clearRect(0, 0, innerWidth, innerHeight);
   };
 
-  live.setSource = function (val) {
+  coder.setSource = function (val) {
     _clear();
     _codemirror.setValue(val);
     _startCompiling();
   };
-  live.getSource = function (val) {
+  coder.getSource = function (val) {
     return _codemirror.getValue();
   };
 
@@ -170,12 +166,17 @@ var live = (function(){
 
     var compiling = false;
     var vars = {};
+    var once = {};
     var always = {};
     var cache = {};
 
     var cached = function (fun) {
       return function () {
-        var hash = fun + JSON.stringify(arguments); // HACK imprecise
+        var hash = [fun+''];
+        for (var i in arguments) {
+          hash.push(JSON.stringify(arguments[i])); // HACK imprecise
+        }
+        hash = hash.join();
         if (hash in cache) {
           return cache[hash];
         } else {
@@ -184,90 +185,82 @@ var live = (function(){
       };
     };
 
-    // this prevents fun from being reentrant
-    var scheduled = function (fun) {
-      var running = false;
-      var result = function () {
-        if (!running) {
-          running = true;
-          setTimeout(function(){ fun(); running = false; }, 0);
-        }
-      };
-      result.immediately = function () {
-        running = true;
-        fun();
-        running = false;
-      };
-      return result;
-    };
-
-    // TODO live.oncompile(function(){ diffHistory.add(live.getSource()); });
+    // TODO coder.oncompile(function(){ diffHistory.add(coder.getSource()); });
     var compileHandlers = [];
-    live.oncompile = function (handler) {
+    coder.oncompile = function (handler) {
       compileHandlers.push(handler);
     };
 
     var preWrapper = (
         '"use strict";\n' +
         '(function(' +
-              'vars, always, cached, clear, setTimeout, using,' +
+              'vars, once, always, cached, clear, setTimeout, using,' +
               'help, print, error, draw' +
             '){\n');
     var postWrapper = '\n/**/})';
-    var compileAndEval = function (source) {
 
-      var compiled;
-      try {
-        compiled = globalEval(
-            preWrapper +
-            source.replace(/\bnonce\b/g,'if(0)') +
-            postWrapper);
-      }
-      catch (err) {
-        _warn(err);
-        return true;
-      }
-
-      _success();
-
-      try {
-        compiled(
-            vars, always, cached, _clear, _setTimeout, _using,
-            _help, _print, _error, _context2d);
-      }
-      catch (err) {
-        (err instanceof Warning ? _warn : _error)(err);
-        return true;
-      }
-
-      return false;
-    };
-
-    _compileSource = scheduled(function () {
+    _compileSource = function () {
 
       if (!compiling) {
         _warn('hit escape to compile');
         return;
       }
 
-      var cursor = _codemirror.getSearchCursor(/\bonce\b/g);
-      while (cursor.findNext()) {
-
-        var firstOnce = (_codemirror.getValue()
-            .replace(/\bonce\b/,'if(1)')     // activate first once &
-            .replace(/\bonce\b[\s\S]*/,'')); // truncate remaining
-
-        if (compileAndEval(firstOnce)) return;
-
-        cursor.replace('nonce'); // deactivate first once
+      var source = _codemirror.getValue();
+      var compiled;
+      try {
+        compiled = globalEval(preWrapper + source + postWrapper);
+      }
+      catch (err) {
+        _warn(err);
+        return;
       }
 
-      if (compileAndEval(_codemirror.getValue())) return;
+      _success();
+      var warnings = [];
+      var errors = [];
+
+      var oncePrev = {};
+      for (var key in once) {
+        oncePrev[key] = undefined;
+      }
+
+      try {
+        compiled(
+            vars, once, always, cached, _clear, _setTimeout, _using,
+            _help, _print, _error, _context2d);
+      }
+      catch (err) {
+        (err instanceof Warning ? warnings : errors).push(err.toString());
+      }
+
+      for (var key in once) {
+        if (!(key in oncePrev)) {
+          try {
+            once[key]();
+          }
+          catch (err) {
+            delete once[key]; // try again next compile
+            var message = 'In once[' + JSON.stringify(key) + ']: ' + err;
+            (err instanceof Warning ? warnings : errors).push(message);
+          }
+        }
+      }
+
+      if (errors.length) {
+        _error(errors.concat(warnings).join(';\n'));
+        return;
+      }
+
+      if (warnings.length) {
+        _warn(warnings.join(';\n'));
+        return;
+      }
 
       for (var i = 0; i < compileHandlers.length; ++i) {
         compileHandlers[i]();
       }
-    });
+    };
 
     _stopCompiling = function () {
       compiling = false;
@@ -287,6 +280,7 @@ var live = (function(){
 
     _clearWorkspace = function () {
       for (var key in vars) { delete vars[key]; }
+      for (var key in once) { delete once[key]; }
       for (var key in always) { delete always[key]; }
       for (var key in cache) { delete cache[key]; }
     };
@@ -474,13 +468,13 @@ var live = (function(){
 
   return {
 
-    init: live.init,
+    init: coder.init,
 
-    setSource: live.setSource,
-    getSource: live.getSource,
+    setSource: coder.setSource,
+    getSource: coder.getSource,
 
     toggleCompiling: _toggleCompiling,
-    oncompile: live.oncompile,
+    oncompile: coder.oncompile,
 
     focus: function(){ _codemirror.focus(); },
 

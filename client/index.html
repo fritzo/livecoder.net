@@ -42,10 +42,7 @@
 <script type='text/javascript' src='livecoder.js'></script>
 <script type='text/javascript' src='ui.js'></script>
 
-<!-- XXX this is huge and expensive; TODO try to factor out to a module -->
-<!-- GPL3 -->
-<script src='speakGenerator.js'></script>
-<!-- <script src='speakClient.js'></script> -->
+<!-- MIT -->
 <script type='text/javascript' src='audio.js'></script>
 
 <!-- MIT -->
@@ -61,26 +58,43 @@
 <body>
 
 <canvas id='canvas2d'></canvas>
-<div id='audio'></div> <!-- needed by speakClient.js -->
 
 <div id='editor'>
   <div><textarea id='source' name='source' spellcheck='false'></textarea></div>
+
+  <!-- TODO make log area more conveniently resizable -->
   <textarea id='log' readonly spellcheck='false'></textarea>
 </div>
 
-<div class='toolbar'>
-  <button class='statusFace' id='showToolbar' title='show toolbar'>:)</button>
-</div>
 <div class='toolbar' id='toolbar'>
+  <span class='hidableButtons'>
   <button class='roundRound' id='su'>su</button>
   &nbsp;
-  <button class='roundRound' id='showHelp' title='shortcut = F1'>help</button>
+  <button id='helpButton' title='help = F1' class='roundRound'>help</button>
+
+  <div style='display:none'>
   &nbsp;
-  <button class='roundFlat' id='save' title='shortcut = CTRL+S'>save</button><!--
-  --><button class='flatFlat' id='showGallery' title='shortcut = CTRL+O'>gallery</button><!--
-  --><button class='flatRound' id='share'>share</button>
+  <button id='playButton' title='play' class='roundFlat'><svg viewBox='0 0 1 1'>
+    <polygon fill='white' points='0,0 1,0.5 0,1' />
+  </svg></button><!--
+  --><button class='flatFlat' id='pauseButton' title='pause'><svg viewBox='0 0 1 1'>
+    <rect fill='white' x='0' y='0' width='0.3' height='1' />
+    <rect fill='white' x='0.7' y='0' width='0.3' height='1' />
+  </svg></button><!--
+  --><button class='flatRound' id='recordButton' title='record'><svg viewBox='0 0 1 1'>
+    <circle fill='#ffbfbf' cx='0.5' cy='0.5' r='0.5' />
+  </svg></button>
+  </div>
+
   &nbsp;
-  <button class='statusFace' id='hideToolbar' title='hide toolbar'>:)</button>
+  <button id='resetButton' title='reset = CTRL+C' class='roundRound'>reset</button>
+  &nbsp;
+  <button id='saveButton' title='save = CTRL+S' class='roundFlat'>save</button><!--
+  --><button id='galleryButton' title='load = CTRL+O' class='flatFlat'>gallery<span id='galleryCount'></span></button><!--
+  --><button id='shareButton' class='flatRound'>share</button>
+  &nbsp;
+  </span>
+  <button id='hideButton' class='statusFace' title='toggle toolbar'>:)</button>
 </div>
 
 <div class='toolbar' id='gallery'>
@@ -121,11 +135,8 @@
                                                               <a href='https://github.com/fritzo/livecoder.net/issues'>Report a bug</a>
 <b id='F1target'>Language Extensions</b>
 
-  <span class='keyword'>once</span> {...},   'once f()' evaluates f once, then degrades to 'nonce f()'
-  <span class='keyword'>nonce</span> {...}   To evaluate again, switch 'nonce' back to 'once'
-                (this feature partially replaces a <a href='http://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop'>REPL + history</a>)
-
   <span class='lang'>vars</span>._        A place to put persistent data
+  <span class='lang'>once</span>._        A place to put functions that run once
   <span class='lang'>always</span>._      A place to put functions that run continuously
 
   <span class='lang'>cached</span>(f)(-)  Caches value of f applied to JSON'able arguments
@@ -168,7 +179,7 @@
 
 <b>Speech - using <a href='http://espeak.sourceforge.net'>espeak</a>/<a href='https://github.com/kripken/speak.js'>speak.js</a></b>
 
-  <span class='lang'>using</span>(<span class='atom'>'speech.js'</span>); <span class='comment'>// load speech library first</span>
+  <span class='lang'>using</span>(<span class='string'>'speech.js'</span>); <span class='comment'>// load speech library first</span>
 
   say(text)     Speaks text out loud
 
@@ -179,6 +190,7 @@
   <span class=key>F1</span>            Show language help              <span class=key>F1</span>
   <span class=key>F2</span>            Show keyboard shortcuts         <span class=key>F2</span>
 
+  <span class=key>Ctrl-C</span>        Reset state, same as clear()    <span class=key>Cmd-C</span>
   <span class=key>Escape</span>        Pause/continue compiling        <span class=key>Escape</span>
                 (useful for atomic edits)
 
