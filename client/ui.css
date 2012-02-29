@@ -109,6 +109,37 @@ textarea,
   background-color: rgba(0,0,0,0.666);
 }
 
+#chat {
+  display: none;
+}
+#chat textarea {
+  font-family: helvetica, verdana, sans;
+  display: block;
+  position: fixed;
+  left: 80%;
+  width: 19%;
+  font-weight: normal;
+  font-size: small;
+  color: white;
+  border: none;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  resize: none;
+  overflow: auto;
+  border-radius: 1ex;
+}
+#chatRead {
+  top: 1%;
+  height: 88%;
+  background-color: rgba(31,31,31,0.5);
+}
+#chatWrite {
+  top: 90%;
+  height: 9%;
+  background-color: rgba(63,63,63,0.5);
+}
+
 .info {
   position: absolute;
   width: 80%;
@@ -270,6 +301,7 @@ canvas { z-index: 0; }
 
 /* .CodeMirror-dialog { z-index: 15; } */
 
+#chat { z-index: 18; }
 #gallery { z-index: 19; }
 .toolbar { z-index: 20; }
 

@@ -30,8 +30,10 @@
 <script src='codemirror.min.js'></script>
 <script src='cm-live.js'></script>
 
-<!-- Apache 2.0 -->
-<script src='diff_match_patch.js'></script>
+<!-- socket.io MIT -->
+<script src='http://livecoder.nodester.com/socket.io/socket.io.js'></script>
+<!-- syncclient MIT + diff_match_patch Apache 2.0 -->
+<script src='http://livecoder.nodester.com/client.js'></script>
 
 <!-- MIT,GPL2 -->
 <script type='text/javascript' src='safety.js'></script>
@@ -66,14 +68,22 @@
   <textarea id='log' readonly spellcheck='false'></textarea>
 </div>
 
+<div id='chat'>
+  <textarea id='chatRead' readonly spellcheck='false'></textarea>
+  <textarea id='chatWrite' spellcheck='false'></textarea>
+</div>
+
 <div class='toolbar' id='toolbar'>
+
   <span class='hidableButtons'>
+
   <button class='roundRound' id='su'>su</button>
   &nbsp;
+
   <button id='helpButton' title='help = F1' class='roundRound'>help</button>
+  &nbsp;
 
   <div style='display:none'>
-  &nbsp;
   <button id='playButton' title='play' class='roundFlat'><svg viewBox='0 0 1 1'>
     <polygon fill='white' points='0,0 1,0.5 0,1' />
   </svg></button><!--
@@ -84,16 +94,24 @@
   --><button class='flatRound' id='recordButton' title='record'><svg viewBox='0 0 1 1'>
     <circle fill='#ffbfbf' cx='0.5' cy='0.5' r='0.5' />
   </svg></button>
+  &nbsp;
   </div>
 
-  &nbsp;
   <button id='resetButton' title='reset = CTRL+C' class='roundRound'>reset</button>
   &nbsp;
+
   <button id='saveButton' title='save = CTRL+S' class='roundFlat'>save</button><!--
   --><button id='galleryButton' title='load = CTRL+O' class='flatFlat'>gallery<span id='galleryCount'></span></button><!--
   --><button id='shareButton' class='flatRound'>share</button>
   &nbsp;
+
+  <span id='jamButtonSpan'>
+  <button id='jamButton' class='roundRound'>join jam</button>
+  &nbsp;
   </span>
+
+  </span>
+
   <button id='hideButton' class='statusFace' title='toggle toolbar'>:)</button>
 </div>
 
@@ -242,8 +260,8 @@
   <a href='http://code.google.com/p/oflivecoding/'>OFLiveCoding</a>
     a javascript live-coding framework developed with openframeworks
 
-  <a href='http://livecoder.sugyan.com'>Livecoder</a>
-    a browser-based broadcast code editor using Eclipse Orion
+  <a href='http://livecoder.sugyan.com'>Live-coder</a>
+    a browser-based collaborative code editor using Eclipse Orion
     (also called livecoder)
 
   <a href='http://paperjs.org'>paper.js</a>

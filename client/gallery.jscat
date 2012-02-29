@@ -113,21 +113,20 @@ var config = {
 vars.scale = cached(function (config) {
 
   var QQ = Rational.ball(config.radius);
-  vars.freqs = QQ.map(function(q){
+  var freqs = QQ.map(function(q){
     return middleC * q.toNumber();
   });
+
   var times = QQ.map(function(q){
     return Math.exp(-q.norm() / config.temperature);
   });
   var sum = times.reduce(function(x,y){ return x+y; });
   var timeScale = config.totalTime / sum;
-  vars.times = times.map(function(t){ return timeScale * t; });
+  times = times.map(function(t){ return timeScale * t; });
 
-  vars.starts = [0];
-  vars.ends = [vars.times[0]];
+  vars.ends = [times[0]];
   for (var i = 1; i < QQ.length; ++i) {
-    vars.starts[i] = vars.starts[i-1] + vars.times[i-1];
-    vars.ends[i] = vars.starts[i] + vars.times[i];
+    vars.ends[i] = vars.ends[i-1] + times[i];
   }
 
   var samples = new Array(config.totalTime * sampleRate);
@@ -135,7 +134,7 @@ vars.scale = cached(function (config) {
   for (var i = 0, t = 0, T = samples.length; t < T; ++t) {
     while (t / sampleRate > vars.ends[i]) ++i;
     samples[t] = 4 * Math.min(phase, 1 - phase) - 1; // triangle wave
-    phase = (phase + vars.freqs[i] / sampleRate) % 1;
+    phase = (phase + freqs[i] / sampleRate) % 1;
   }
 
   return encodeWav(samples);

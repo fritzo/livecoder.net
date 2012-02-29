@@ -8,7 +8,8 @@
  * http://www.opensource.org/licenses/MIT
  */
 
-// TODO make this a module-as-closure, since noone else uses ui
+(function(){ // UI
+
 var ui = {};
 
 ui.reset = function () {
@@ -229,15 +230,85 @@ ui.shareHash = function () {
 };
 
 //------------------------------------------------------------------------------
+// Jamming
+
+ui.jam = (function(){
+  if (!(this.syncCoder && this.syncChatter)) return undefined;
+
+  var serverUrl = 'http://livecoder.nodester.com';
+
+  var jamming;
+  var chatter;
+  var source; // keep an extra copy for sync polling
+  var onchange;
+
+  var getSource = function () {
+    return source;
+  };
+  var setSource = function (text) {
+    coder.setSource(source = text);
+  };
+  coder.oncompile(function(){
+    if (onchange) {
+      source = coder.getSource();
+      onchange();
+    }
+  });
+
+  var start = function () {
+    if (jamming) return;
+
+    jamming = {
+
+      code: syncCoder({
+        serverUrl: serverUrl,
+        setSource: setSource,
+        getSource: getSource,
+        setCursor: coder.setCursor,
+        getCursor: coder.getCursor,
+        onchange: function (cb) { onchange = cb; }
+      }),
+
+      chat: syncChatter({
+        serverUrl: serverUrl,
+        $read: $('#chatRead'),
+        $write: $('#chatWrite')
+      })
+    };
+
+    $('#jamButton').text('leave jam');
+    $('#chat').fadeIn(100);
+  };
+
+  var stop = function () {
+    if (!jamming) return;
+
+    onchange = undefined;
+    jamming.code.close();
+    jamming.chat.close();
+    jamming = undefined;
+
+    $('#jamButton').text('join jam');
+    $('#chat').fadeOut(100);
+  };
+
+  return {
+    start: start,
+    stop: stop,
+    toggle: function () { jamming ? stop() : start(); }
+  };
+})();
+
+//------------------------------------------------------------------------------
 // Admin
 
-var su = function () {
+window.su = function () {
   // turn on the ugly stuff
   $('#importExport, #su').show();
   localStorage.setItem('su', Date.now());
 };
 
-var nosu = function () {
+window.su.exit = function () {
   // turn off the ugly stuff
   $('#importExport, #su').hide();
   localStorage.removeItem('su');
@@ -333,7 +404,7 @@ $(function() {
   var hideOverlays = function () {
     $('#gallery,#shareBox,#help').fadeOut('fast');
   };
-  $('#log').on('focus', hideOverlays);
+  $('#log,#chat textarea').on('focus', hideOverlays);
 
   // XXX HACK FIXME
   $('#log')
@@ -353,7 +424,7 @@ $(function() {
           });
 
   if ('su' in localStorage) su();
-  $('#su').click(nosu).attr('title', 'leave superuser mode');
+  $('#su').click(su.exit).attr('title', 'leave superuser mode');
 
   $('#helpButton').click(function(){
         var $help = $('#help');
@@ -378,6 +449,12 @@ $(function() {
     ui.buildScriptList();
   });
   $('#shareButton').click(ui.shareHash);
+
+  if (ui.jam) {
+    $('#jamButton').click(ui.jam.toggle);
+  } else {
+    $('#jamButtonSpan').hide();
+  }
 
   $('#export').click(function(){
         $('#galleryBox').val(ui.exportGallery).focus().select();
@@ -412,4 +489,6 @@ $(function() {
 
   coder.focus();
 });
+
+})(); // UI
 

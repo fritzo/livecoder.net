@@ -14,8 +14,6 @@ jquery.timeago.js
 codemirror.min.js
 cm-live.js
 
-diff_match_patch.js
-
 safety.js
 testing.js
 wavencoder.js
@@ -37,7 +35,11 @@ ui.css
 
 http://www.google-analytics.com/ga.js
 
-# using(-) can request other scripts
 NETWORK:
+
+http://livecoder.nodester.com/socket.io/socket.io.js
+http://livecoder.nodester.com/client.js
+
+# using(-) can request other scripts
 *
 
