@@ -111,18 +111,18 @@ textarea,
 
 #chat {
   display: none;
+  opacity: 0.666;
 }
 #chat textarea {
-  font-family: helvetica, verdana, sans;
   display: block;
   position: fixed;
-  left: 80%;
-  width: 19%;
-  font-weight: normal;
+  left: 81%;
+  width: 18%;
+  color: white;
+  font-family: helvetica, verdana, sans;
   font-size: small;
   color: white;
-  border: none;
-  outline: none;
+  border: solid 2px black;
   padding: 0;
   margin: 0;
   resize: none;
@@ -132,12 +132,13 @@ textarea,
 #chatRead {
   top: 1%;
   height: 88%;
-  background-color: rgba(31,31,31,0.5);
+  background-color: rgb(31,31,31);
+  outline: none;
 }
 #chatWrite {
-  top: 90%;
-  height: 9%;
-  background-color: rgba(63,63,63,0.5);
+  top: 91%;
+  height: 8%;
+  background-color: rgb(63,63,63);
 }
 
 .info {

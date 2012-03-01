@@ -33,8 +33,9 @@
 
 var coder = (function(){
 
-  var alwaysPollMs = 250;
-  var alwaysLoopMs = 1;
+  var MAX_CODE_SIZE = 1/0;
+  var ALWAYS_POLL_MS = 250;
+  var ALWAYS_LOOP_MS = 1;
 
   var coder = {};
 
@@ -219,6 +220,8 @@ var coder = (function(){
       var source = _codemirror.getValue();
       var compiled;
       try {
+        assert(source.length < MAX_CODE_SIZE,
+            'code is too big: length = ' + source.length);
         compiled = globalEval(preWrapper + source + postWrapper);
       }
       catch (err) {
@@ -297,7 +300,7 @@ var coder = (function(){
 
     var alwaysTask = function () {
       if ($.isEmptyObject(always)) {
-        setTimeout(alwaysTask, alwaysPollMs); // later
+        setTimeout(alwaysTask, ALWAYS_POLL_MS); // later
       } else {
         for (var key in always) {
           try {
@@ -307,7 +310,7 @@ var coder = (function(){
             _error('In always[' + JSON.stringify(key) + ']: ' + err);
           }
         }
-        setTimeout(alwaysTask, alwaysLoopMs); // sooner
+        setTimeout(alwaysTask, ALWAYS_LOOP_MS); // sooner
       }
     };
 
@@ -479,6 +482,9 @@ var coder = (function(){
   return {
 
     init: coder.init,
+
+    getMaxCodeSize: function () { return MAX_CODE_SIZE; },
+    setMaxCodeSize: function (size) { MAX_CODE_SIZE = size; },
 
     setSource: coder.setSource,
     getSource: coder.getSource,

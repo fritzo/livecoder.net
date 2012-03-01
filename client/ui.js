@@ -238,10 +238,9 @@ ui.jam = (function(){
   var serverUrl = 'http://livecoder.nodester.com';
 
   var jamming;
-  var chatter;
-  var source; // keep an extra copy for sync polling
   var onchange;
 
+  var source; // keep an extra copy for sync polling
   var getSource = function () {
     return source;
   };
@@ -255,39 +254,64 @@ ui.jam = (function(){
     }
   });
 
+  var oldMaxCodeSize;
   var start = function () {
     if (jamming) return;
 
-    jamming = {
+    oldMaxCodeSize = coder.getMaxCodeSize();
 
-      code: syncCoder({
+    var onlogin = function (username) {
+      localStorage.setItem('username', username);
+
+      coder.setMaxCodeSize(syncCoder.MAX_CODE_SIZE);
+
+      assert(jamming, 'tried to login while not jamming');
+      jamming.code = syncCoder({
         serverUrl: serverUrl,
         setSource: setSource,
         getSource: getSource,
         setCursor: coder.setCursor,
         getCursor: coder.getCursor,
         onchange: function (cb) { onchange = cb; }
-      }),
+      });
 
+      $('#editor').show();
+      coder.focus();
+    };
+
+    jamming = {
       chat: syncChatter({
         serverUrl: serverUrl,
         $read: $('#chatRead'),
-        $write: $('#chatWrite')
-      })
+        $write: $('#chatWrite'),
+        onlogin: onlogin
+      }),
     };
 
+    coder.setSource('');
+    $('#editor').hide();
+    $('#toolbar').css('right', '20%');
     $('#jamButton').text('leave jam');
-    $('#chat').fadeIn(100);
+    $('#chat').fadeIn(100, function(){
+          var username = localStorage.getItem('username');
+          var write = $('#chatWrite').focus().val(username)[0];
+          write.selectionStart = 0;
+          write.selectionEnd = username.length;
+        });
   };
 
   var stop = function () {
     if (!jamming) return;
 
+    coder.setMaxCodeSize(oldMaxCodeSize);
+
     onchange = undefined;
-    jamming.code.close();
     jamming.chat.close();
+    if (jamming.code) jamming.code.close();
     jamming = undefined;
 
+    $('#editor').show();
+    $('#toolbar').css('right', '0');
     $('#jamButton').text('join jam');
     $('#chat').fadeOut(100);
   };
