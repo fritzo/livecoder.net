@@ -66,6 +66,12 @@ assert.help = (
 '  assertIndex(i, length, optionalName)'
 );
 
+// TODO rename additional assertions to
+// assert.eval
+// assert.equal
+// assert.less
+// etc.
+
 var assertEval = function (message) {
   assert(eval(message), message);
 };
@@ -109,6 +115,15 @@ assertIndex = function (i, length, message) {
 };
 assertIndex.help =
   'assertIndex(i, I, optionalName) throws unless i in {0,...,I}';
+
+assert.getter = function (args) {
+  return function (name) {
+    var result = args[name];
+    assert(result !== undefined, 'object does not define ' + name);
+    return result;
+  };
+};
+assert.getter.help = 'assert.getter(obj)(name) throws if obj.name is undefined';
 
 /** @constructor */
 var WorkerException = function (message) {

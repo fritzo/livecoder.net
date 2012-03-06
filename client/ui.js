@@ -235,21 +235,25 @@ ui.shareHash = function () {
 ui.jam = (function(){
   if (!(this.syncCoder && this.syncChatter)) return undefined;
 
+  // TODO move pending-vs-compiled logic into syncCoder
+  // XXX FIXME this is currently broken
+  var dmp = new diff_match_patch();
+
   var serverUrl = 'http://livecoder.nodester.com';
 
   var jamming;
   var onchange;
 
-  var source; // keep an extra copy for sync polling
+  var compiledSource;
   var getSource = function () {
-    return source;
+    return compiledSource;
   };
   var setSource = function (text) {
-    coder.setSource(source = text);
+    compiledSource = text
   };
   coder.oncompile(function(){
     if (onchange) {
-      source = coder.getSource();
+      compiledSource = coder.getSource();
       onchange();
     }
   });
@@ -270,6 +274,8 @@ ui.jam = (function(){
         serverUrl: serverUrl,
         setSource: setSource,
         getSource: getSource,
+        setPending: coder.setSource,
+        getPending: coder.getSource,
         setCursor: coder.setCursor,
         getCursor: coder.getCursor,
         onchange: function (cb) { onchange = cb; }
@@ -285,7 +291,7 @@ ui.jam = (function(){
         $read: $('#chatRead'),
         $write: $('#chatWrite'),
         onlogin: onlogin
-      }),
+      })
     };
 
     coder.setSource('');
