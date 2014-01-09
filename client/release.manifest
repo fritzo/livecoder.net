@@ -37,8 +37,9 @@ http://www.google-analytics.com/ga.js
 
 NETWORK:
 
-http://livecoder.nodester.com/socket.io/socket.io.js
-http://livecoder.nodester.com/client.js
+# nodester server is permanently down
+#http://livecoder.nodester.com/socket.io/socket.io.js
+#http://livecoder.nodester.com/client.js
 
 # using(-) can request other scripts
 *
