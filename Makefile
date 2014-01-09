@@ -8,7 +8,7 @@ compiler: FORCE
 	rm -rf compiler
 	mkdir compiler
 	( test -e /tmp/closure-compiler.zip || \
-	  wget http://closure-compiler.googlecode.com/files/compiler-latest.zip \
+	  wget http://dl.google.com/closure-compiler/compiler-latest.zip \
 	    -O /tmp/closure-compiler.zip ) && \
 	unzip /tmp/closure-compiler.zip -d compiler || \
 	rm -rf compiler
@@ -35,7 +35,7 @@ extern/codemirror: extern
 	( test -e /tmp/codemirror.zip || \
 	  wget http://codemirror.net/codemirror.zip -O /tmp/codemirror.zip )
 	unzip /tmp/codemirror.zip -d extern/ && \
-	( cd extern ; ln -sf CodeMirror-* codemirror )
+	( cd extern ; ln -sf codemirror-* codemirror )
 
 extern/audiolibjs: extern FORCE
 	rm -rf extern/*-audiolib.js-*
@@ -68,20 +68,20 @@ live-wavencoder: extern/wavencoderjs
 live-codemirror: extern/codemirror compiler
 	# concat css
 	cat extern/codemirror/lib/codemirror.css \
-	    extern/codemirror/lib/util/dialog.css \
-	    extern/codemirror/lib/util/simple-hint.css \
+	    extern/codemirror/addon/dialog/dialog.css \
+	    extern/codemirror/addon/hint/show-hint.css \
 	  > client/codemirror.css
 	# concat + compress javascript
 	cp extern/codemirror/mode/javascript/javascript.js \
 	   client/cm-javascript.js # for reference only; we fork as cm-live.js
 	$(COMPILE) \
 	  --js=extern/codemirror/lib/codemirror.js \
-	  --js=extern/codemirror/lib/util/dialog.js \
-	  --js=extern/codemirror/lib/util/searchcursor.js \
-	  --js=extern/codemirror/lib/util/search.js \
-	  --js=extern/codemirror/lib/util/simple-hint.js \
-	  --js=extern/codemirror/lib/util/javascript-hint.js \
-	  --js=extern/codemirror/lib/util/overlay.js \
+	  --js=extern/codemirror/addon/dialog/dialog.js \
+	  --js=extern/codemirror/addon/search/searchcursor.js \
+	  --js=extern/codemirror/addon/search/search.js \
+	  --js=extern/codemirror/addon/hint/show-hint.js \
+	  --js=extern/codemirror/addon/hint/javascript-hint.js \
+	  --js=extern/codemirror/addon/mode/overlay.js \
 	  --js_output_file=client/codemirror.min.js
 
 live-espeak: extern/espeak

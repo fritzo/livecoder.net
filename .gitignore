@@ -1,4 +1,5 @@
 temp.*
 core
 core.*
-
+compiler/
+extern/

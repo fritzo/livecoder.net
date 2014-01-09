@@ -63,7 +63,8 @@ textarea,
   border: 0px;
   outline: none;
   resize: none;
-  overflow: auto;
+  /* overflow: auto; */
+  overflow: hidden; /* HACK */
 }
 #source,
 .CodeMirror {
